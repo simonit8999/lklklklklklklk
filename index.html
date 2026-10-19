@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>UNDEFINED ARCH · BRUTALIST</title>
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <!-- Fonts: Anton + Courier New (system) -->
+  <link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
+  <style>
+    /* ----- RESET & GLOBAL ----- */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      border-radius: 0 !important; /* brutalist no radius */
+    }
+
+    body {
+      background-color: #FFFFFF;
+      color: #000000;
+      font-family: 'Courier New', Courier, monospace;
+      font-weight: 400;
+      line-height: 1.2;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      -webkit-font-smoothing: antialiased;
+      padding-bottom: 70px; /* space for fixed bottom nav */
+    }
+
+    /* ----- TYPOGRAPHY ----- */
+    h1, h2, h3, h4, .anton {
+      font-family: 'Anton', sans-serif;
+      font-weight: 400;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+    }
+
+    /* ----- LAYOUT & UTILS ----- */
+    .container {
+      flex: 1;
+      padding: 16px 12px 24px;
+      max-width: 600px;
+      margin: 0 auto;
+      width: 100%;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    /* ----- ADMIN BUTTON (top-left) ----- */
+    #adminBtn {
+      position: fixed;
+      top: 12px;
+      left: 12px;
+      z-index: 1000;
+      background: #000;
+      color: #fff;
+      border: 2px solid #000;
+      padding: 8px 16px;
+      font-family: 'Anton', sans-serif;
+      font-size: 14px;
+      letter-spacing: 1px;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 3px 3px 0 #000;
+      transition: none;
+    }
+
+    #adminBtn:hover {
+      background: #222;
+    }
+
+    /* ----- SCREEN HEADER ----- */
+    .screen-header {
+      font-family: 'Anton', sans-serif;
+      font-size: 38px;
+      line-height: 1;
+      margin: 28px 0 20px;
+      text-transform: uppercase;
+      border-bottom: 4px solid #000;
+      padding-bottom: 8px;
+      letter-spacing: -0.01em;
+    }
+
+    /* ----- PRODUCT GRID (2 columns) ----- */
+    .product-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px 12px;
+    }
+
+    .product-card {
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      background: #fff;
+      border: 2px solid #000;
+      transition: none;
+    }
+
+    .product-image-wrapper {
+      position: relative;
+      aspect-ratio: 1 / 1;
+      background: #eee;
+      overflow: hidden;
+      border-bottom: 2px solid #000;
+    }
+
+    .product-image-wrapper img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: none;
+    }
+
+    .sold-out-img {
+      filter: grayscale(100%) contrast(1.2);
+    }
+
+    .sold-out-badge {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #000;
+      color: #fff;
+      font-family: 'Anton', sans-serif;
+      font-size: 16px;
+      letter-spacing: 2px;
+      padding: 8px 16px;
+      border: 2px solid #fff;
+      text-transform: uppercase;
+      white-space: nowrap;
+    }
+
+    .product-info {
+      padding: 8px 6px;
+      background: #fff;
+    }
+
+    .product-name {
+      font-family: 'Anton', sans-serif;
+      font-size: 16px;
+      line-height: 1.2;
+      margin-bottom: 4px;
+      text-transform: uppercase;
+    }
+
+    .product-price {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    /* ----- ARCHIVE GRID (square photos) ----- */
+    .archive-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 6px;
+    }
+
+    .archive-item {
+      aspect-ratio: 1 / 1;
+      border: 2px solid #000;
+      background: #eee;
+      cursor: pointer;
+      overflow: hidden;
+    }
+
+    .archive-item img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: none;
+    }
+
+    /* fullscreen image overlay */
+    .fullscreen-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: #000;
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .fullscreen-overlay img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      border: 4px solid #fff;
+    }
+
+    .fullscreen-close {
+      position: absolute;
+      top: 20px;
+      right: 20px;
+      color: #fff;
+      font-size: 32px;
+      font-family: 'Anton', sans-serif;
+      cursor: pointer;
+      background: #000;
+      border: 2px solid #fff;
+      padding: 4px 16px;
+      line-height: 1;
+    }
+
+    /* ----- PRODUCT DETAIL (screen 3) ----- */
+    .detail-image {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      border: 3px solid #000;
+      object-fit: cover;
+      background: #eee;
+      margin-bottom: 16px;
+    }
+
+    .detail-name {
+      font-family: 'Anton', sans-serif;
+      font-size: 34px;
+      line-height: 1;
+      margin-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .detail-price {
+      font-family: 'Courier New', monospace;
+      font-weight: 700;
+      font-size: 22px;
+      letter-spacing: 1px;
+      margin-bottom: 20px;
+      border-bottom: 2px solid #000;
+      padding-bottom: 8px;
+    }
+
+    .detail-description {
+      font-family: 'Courier New', monospace;
+      font-size: 15px;
+      line-height: 1.5;
+      margin-bottom: 28px;
+      white-space: pre-line;
+      border-left: 4px solid #000;
+      padding-left: 12px;
+    }
+
+    .order-btn {
+      width: 100%;
+      background: #000;
+      color: #fff;
+      border: none;
+      font-family: 'Anton', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2px;
+      padding: 18px 0;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 8px;
+      border: 2px solid #000;
+      transition: none;
+    }
+
+    .order-btn:hover {
+      background: #222;
+    }
+
+    /* disabled / sold out state */
+    .order-btn:disabled {
+      background: #888 !important;
+      color: #fff !important;
+      border-color: #888 !important;
+      cursor: not-allowed !important;
+    }
+
+    /* ----- MODAL (order comment) ----- */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.7);
+      z-index: 3000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .modal-content {
+      background: #fff;
+      border: 4px solid #000;
+      max-width: 400px;
+      width: 100%;
+      padding: 24px 20px;
+      box-shadow: 12px 12px 0 #000;
+    }
+
+    .modal-content h3 {
+      font-family: 'Anton', sans-serif;
+      font-size: 24px;
+      margin-bottom: 16px;
+      border-bottom: 3px solid #000;
+      padding-bottom: 8px;
+    }
+
+    .modal-content textarea {
+      width: 100%;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      border: 3px solid #000;
+      padding: 12px;
+      margin-bottom: 16px;
+      resize: vertical;
+      min-height: 100px;
+      background: #fff;
+    }
+
+    .modal-actions {
+      display: flex;
+      gap: 12px;
+    }
+
+    .modal-actions button {
+      flex: 1;
+      font-family: 'Anton', sans-serif;
+      font-size: 16px;
+      letter-spacing: 1px;
+      padding: 14px 0;
+      text-transform: uppercase;
+      border: 2px solid #000;
+      cursor: pointer;
+      transition: none;
+    }
+
+    .btn-send {
+      background: #000;
+      color: #fff;
+    }
+
+    .btn-cancel {
+      background: #fff;
+      color: #000;
+    }
+
+    /* ----- SEARCH INPUT ----- */
+    .search-input {
+      width: 100%;
+      font-family: 'Courier New', monospace;
+      font-size: 18px;
+      border: 3px solid #000;
+      padding: 14px 16px;
+      margin: 12px 0 24px;
+      background: #fff;
+      color: #000;
+      font-weight: 400;
+    }
+
+    .search-input::placeholder {
+      color: #999;
+      font-family: 'Courier New', monospace;
+    }
+
+    /* ----- HELP SCREEN ----- */
+    .help-block {
+      border: 3px solid #000;
+      padding: 20px;
+      margin-bottom: 24px;
+    }
+
+    .help-block p {
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      margin-bottom: 12px;
+      line-height: 1.4;
+    }
+
+    .help-block a {
+      color: #000;
+      text-decoration: underline;
+      font-weight: 700;
+      word-break: break-all;
+    }
+
+    /* ----- ADMIN SCREEN (form) ----- */
+    .admin-form label {
+      display: block;
+      font-family: 'Anton', sans-serif;
+      font-size: 14px;
+      letter-spacing: 1px;
+      margin: 18px 0 6px;
+      text-transform: uppercase;
+    }
+
+    .admin-form input[type="text"],
+    .admin-form input[type="number"],
+    .admin-form textarea {
+      width: 100%;
+      font-family: 'Courier New', monospace;
+      font-size: 16px;
+      border: 3px solid #000;
+      padding: 12px;
+      background: #fff;
+    }
+
+    .admin-form textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .admin-form .checkbox-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .admin-form input[type="checkbox"] {
+      width: 24px;
+      height: 24px;
+      accent-color: #000;
+      border: 2px solid #000;
+      cursor: pointer;
+    }
+
+    .admin-form .checkbox-row span {
+      font-family: 'Anton', sans-serif;
+      font-size: 18px;
+      letter-spacing: 1px;
+    }
+
+    .admin-form button {
+      width: 100%;
+      background: #000;
+      color: #fff;
+      border: 3px solid #000;
+      font-family: 'Anton', sans-serif;
+      font-size: 20px;
+      letter-spacing: 2px;
+      padding: 16px 0;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 24px;
+    }
+
+    /* ----- BOTTOM NAV (fixed) ----- */
+    .bottom-nav {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      background: #fff;
+      border-top: 4px solid #000;
+      display: flex;
+      justify-content: space-around;
+      align-items: center;
+      padding: 8px 4px;
+      z-index: 500;
+      height: 64px;
+      box-shadow: 0 -4px 0 #000;
+    }
+
+    .bottom-nav button {
+      background: transparent;
+      border: 3px solid #000;
+      font-family: 'Anton', sans-serif;
+      font-size: 14px;
+      letter-spacing: 0.5px;
+      padding: 8px 10px;
+      cursor: pointer;
+      text-transform: uppercase;
+      color: #000;
+      flex: 1;
+      margin: 0 3px;
+      transition: none;
+      white-space: nowrap;
+    }
+
+    .bottom-nav button.active {
+      background: #000;
+      color: #fff;
+    }
+
+    .bottom-nav button:active {
+      background: #333;
+      color: #fff;
+    }
+
+    /* small screens */
+    @media (max-width: 380px) {
+      .bottom-nav button {
+        font-size: 12px;
+        padding: 6px 4px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ADMIN BUTTON (shown conditionally) -->
+  <button id="adminBtn" class="hidden" onclick="showScreen('admin')">[ ADMIN ]</button>
+
+  <!-- MAIN CONTAINER (screens) -->
+  <div class="container">
+    <!-- SCREEN 1: CATALOG -->
+    <div id="screen-catalog" class="screen">
+      <h1 class="screen-header">UNDEFINED ARCH.</h1>
+      <div id="catalogGrid" class="product-grid"></div>
+    </div>
+
+    <!-- SCREEN 2: ARCHIVE -->
+    <div id="screen-archive" class="screen hidden">
+      <h1 class="screen-header">ARCHIVE</h1>
+      <div id="archiveGrid" class="archive-grid"></div>
+    </div>
+
+    <!-- SCREEN 3: PRODUCT DETAIL (dynamic) -->
+    <div id="screen-detail" class="screen hidden">
+      <!-- filled via JS -->
+    </div>
+
+    <!-- SCREEN 4: SEARCH -->
+    <div id="screen-search" class="screen hidden">
+      <h1 class="screen-header">SEARCH</h1>
+      <input type="text" id="searchInput" class="search-input" placeholder="TYPE TO FILTER...">
+      <div id="searchGrid" class="product-grid"></div>
+    </div>
+
+    <!-- SCREEN 5: HELP (UPDATED LINKS) -->
+    <div id="screen-help" class="screen hidden">
+      <h1 class="screen-header">HELP</h1>
+      <div class="help-block">
+        <p><strong>TELEGRAM:</strong> <a href="https://t.me/danilkinson" target="_blank">@danilkinson</a></p>
+        <p><strong>CHANNEL:</strong> <a href="https://t.me/UndefinedArch" target="_blank">t.me/UndefinedArch</a></p>
+        <p><strong>REVIEWS:</strong> <a href="https://t.me/UndefinedReview" target="_blank">t.me/UndefinedReview</a></p>
+      </div>
+      <div class="help-block">
+        <p>FOR SUPPORT AND INQUIRIES CONTACT US ON TELEGRAM.</p>
+        <p>ALL ITEMS ARE ARCHIVE / LIMITED.</p>
+      </div>
+    </div>
+
+    <!-- SCREEN 6: ADMIN -->
+    <div id="screen-admin" class="screen hidden">
+      <h1 class="screen-header">ADMIN · ADD ITEM</h1>
+      <div class="admin-form">
+        <label>Название</label>
+        <input type="text" id="adminName" placeholder="ITEM NAME">
+
+        <label>Цена</label>
+        <input type="text" id="adminPrice" placeholder="€ 250">
+
+        <label>Описание</label>
+        <textarea id="adminDesc" placeholder="ITEM DESCRIPTION..."></textarea>
+
+        <div class="checkbox-row">
+          <input type="checkbox" id="adminSoldOut">
+          <span>SOLD OUT</span>
+        </div>
+
+        <button onclick="alert('Форма сохранена (заглушка)')">СОХРАНИТЬ</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- BOTTOM NAVIGATION -->
+  <nav class="bottom-nav">
+    <button id="navCatalog" class="active" onclick="showScreen('catalog')">CATALOG</button>
+    <button id="navArchive" onclick="showScreen('archive')">ARCHIVE</button>
+    <button id="navSearch" onclick="showScreen('search')">SEARCH</button>
+    <button id="navHelp" onclick="showScreen('help')">HELP</button>
+  </nav>
+
+  <!-- FULLSCREEN OVERLAY (for archive) -->
+  <div id="fullscreenOverlay" class="fullscreen-overlay hidden">
+    <img id="fullscreenImage" src="" alt="archive full">
+    <div class="fullscreen-close" onclick="closeFullscreen()">×</div>
+  </div>
+
+  <!-- ORDER MODAL -->
+  <div id="orderModal" class="modal-overlay hidden">
+    <div class="modal-content">
+      <h3>ОФОРМИТЬ ЗАКАЗ</h3>
+      <textarea id="orderComment" placeholder="Комментарий к заказу..."></textarea>
+      <div class="modal-actions">
+        <button class="btn-send" onclick="submitOrder()">ОТПРАВИТЬ</button>
+        <button class="btn-cancel" onclick="closeModal()">ОТМЕНА</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      'use strict';
+
+      // ---------- TELEGRAM WEBAPP ----------
+      const tg = window.Telegram?.WebApp;
+      if (tg) {
+        tg.ready();
+        tg.expand();
+      }
+
+      // ---------- ADMIN IDs ----------
+      const ADMIN_IDS = [1086313853, 966054850];
+      const userId = tg?.initDataUnsafe?.user?.id;
+      const adminBtn = document.getElementById('adminBtn');
+      if (userId && ADMIN_IDS.includes(userId)) {
+        adminBtn.classList.remove('hidden');
+      }
+
+      // ---------- TEST DATA ----------
+      const products = [
+        {
+          id: 1,
+          name: 'OVERSIZED COAT',
+          price: '€ 890',
+          image: 'https://picsum.photos/id/1011/600/600',
+          description: 'BLACK WOOL OVERSIZED COAT. ARCHIVE PIECE FROM 2019. DISTRESSED FINISH. ONE SIZE.',
+          soldOut: false
+        },
+        {
+          id: 2,
+          name: 'CARGO PANTS',
+          price: '€ 420',
+          image: 'https://picsum.photos/id/1012/600/600',
+          description: 'TECHNICAL CARGO PANTS WITH MULTIPLE POCKETS. WATER-REPELLENT FABRIC. UNISEX.',
+          soldOut: true
+        },
+        {
+          id: 3,
+          name: 'LEATHER JACKET',
+          price: '€ 1200',
+          image: 'https://picsum.photos/id/1025/600/600',
+          description: 'BLACK LEATHER BIKER JACKET. HAND-FINISHED. SILVER HARDWARE. LIMITED EDITION 1/10.',
+          soldOut: false
+        },
+        {
+          id: 4,
+          name: 'KNIT BEANIE',
+          price: '€ 110',
+          image: 'https://picsum.photos/id/1040/600/600',
+          description: 'RIBBED KNIT BEANIE. MERINO WOOL BLEND. ONE SIZE. MADE IN ITALY.',
+          soldOut: false
+        }
+      ];
+
+      // sorted: available first, sold out at end
+      function getSortedProducts(list) {
+        return [...list].sort((a, b) => (a.soldOut === b.soldOut ? 0 : a.soldOut ? 1 : -1));
+      }
+
+      // ---------- RENDER CATALOG ----------
+      const catalogGrid = document.getElementById('catalogGrid');
+      function renderCatalog() {
+        const sorted = getSortedProducts(products);
+        catalogGrid.innerHTML = sorted.map(p => `
+          <div class="product-card" onclick="openProductDetail(${p.id})">
+            <div class="product-image-wrapper">
+              <img src="${p.image}" alt="${p.name}" class="${p.soldOut ? 'sold-out-img' : ''}">
+              ${p.soldOut ? '<div class="sold-out-badge">SOLD OUT</div>' : ''}
+            </div>
+            <div class="product-info">
+              <div class="product-name">${p.name}</div>
+              <div class="product-price">${p.price}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // ---------- RENDER SEARCH ----------
+      const searchInput = document.getElementById('searchInput');
+      const searchGrid = document.getElementById('searchGrid');
+      function renderSearch(query) {
+        const q = query.trim().toLowerCase();
+        let filtered = products;
+        if (q) {
+          filtered = products.filter(p => p.name.toLowerCase().includes(q));
+        }
+        const sorted = getSortedProducts(filtered);
+        if (sorted.length === 0) {
+          searchGrid.innerHTML = '<div style="grid-column:1/-1; font-family:\'Courier New\',monospace; padding:20px 0;">NOTHING FOUND.</div>';
+          return;
+        }
+        searchGrid.innerHTML = sorted.map(p => `
+          <div class="product-card" onclick="openProductDetail(${p.id})">
+            <div class="product-image-wrapper">
+              <img src="${p.image}" alt="${p.name}" class="${p.soldOut ? 'sold-out-img' : ''}">
+              ${p.soldOut ? '<div class="sold-out-badge">SOLD OUT</div>' : ''}
+            </div>
+            <div class="product-info">
+              <div class="product-name">${p.name}</div>
+              <div class="product-price">${p.price}</div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      searchInput.addEventListener('input', (e) => {
+        renderSearch(e.target.value);
+      });
+
+      // ---------- ARCHIVE GRID ----------
+      const archiveGrid = document.getElementById('archiveGrid');
+      // use first 6 product images as archive (square)
+      const archiveImages = products.slice(0, 6).map(p => p.image);
+      // duplicate if needed
+      while (archiveImages.length < 6) archiveImages.push(products[0].image);
+      archiveGrid.innerHTML = archiveImages.map((src, idx) => `
+        <div class="archive-item" onclick="openFullscreen('${src}')">
+          <img src="${src}" alt="archive ${idx}">
+        </div>
+      `).join('');
+
+      // fullscreen overlay
+      const fullscreenOverlay = document.getElementById('fullscreenOverlay');
+      const fullscreenImage = document.getElementById('fullscreenImage');
+
+      window.openFullscreen = function(src) {
+        fullscreenImage.src = src;
+        fullscreenOverlay.classList.remove('hidden');
+      };
+
+      window.closeFullscreen = function() {
+        fullscreenOverlay.classList.add('hidden');
+        fullscreenImage.src = '';
+      };
+
+      fullscreenOverlay.addEventListener('click', (e) => {
+        if (e.target === fullscreenOverlay) closeFullscreen();
+      });
+
+      // ---------- PRODUCT DETAIL (screen 3) — UPDATED SOLD OUT ----------
+      const detailScreen = document.getElementById('screen-detail');
+      let currentProductId = null;
+
+      window.openProductDetail = function(id) {
+        const product = products.find(p => p.id === id);
+        if (!product) return;
+        currentProductId = id;
+
+        // Build the button: disabled grey "SOLD OUT" if sold out, else normal order button
+        let actionButtonHTML;
+        if (product.soldOut) {
+          actionButtonHTML = `
+            <button class="order-btn" disabled 
+              style="background:#888 !important; border-color:#888 !important; color:#fff !important; cursor:not-allowed !important;">
+              SOLD OUT
+            </button>
+          `;
+        } else {
+          actionButtonHTML = `
+            <button class="order-btn" onclick="openOrderModal()">ОФОРМИТЬ ЗАКАЗ</button>
+          `;
+        }
+
+        const soldOutBlock = product.soldOut
+          ? `<div style="margin-top:12px; display:inline-block; background:#000; color:#fff; font-family:'Anton',sans-serif; padding:6px 18px; letter-spacing:2px;">SOLD OUT</div>`
+          : '';
+
+        detailScreen.innerHTML = `
+          <h1 class="screen-header" style="font-size:32px; margin-top:12px;">${product.name}</h1>
+          <img class="detail-image" src="${product.image}" alt="${product.name}">
+          <div class="detail-price">${product.price}</div>
+          ${soldOutBlock}
+          <div class="detail-description">${product.description}</div>
+          ${actionButtonHTML}
+        `;
+
+        // switch to detail screen
+        showScreen('detail');
+      };
+
+      // ---------- ORDER MODAL ----------
+      const orderModal = document.getElementById('orderModal');
+      const orderComment = document.getElementById('orderComment');
+
+      window.openOrderModal = function() {
+        orderModal.classList.remove('hidden');
+        orderComment.value = '';
+      };
+
+      window.closeModal = function() {
+        orderModal.classList.add('hidden');
+      };
+
+      // ---------- SUBMIT ORDER — UPDATED WITH tg.close() ----------
+      window.submitOrder = function() {
+        const comment = orderComment.value.trim();
+        const payload = {
+          productId: currentProductId,
+          comment: comment || '(no comment)'
+        };
+
+        if (tg && tg.sendData) {
+          try {
+            tg.sendData(JSON.stringify(payload));
+            // Close the Mini App immediately after sending data.
+            // This is required for sendData to work properly and prevents
+            // the user from getting stuck in the app window.
+            tg.close();
+          } catch (e) {
+            alert('Ошибка отправки: ' + e.message);
+          }
+        } else {
+          alert('Telegram WebApp не доступен. Данные: ' + JSON.stringify(payload));
+        }
+        closeModal();
+      };
+
+      // close modal on overlay click
+      orderModal.addEventListener('click', (e) => {
+        if (e.target === orderModal) closeModal();
+      });
+
+      // ---------- SCREEN SWITCHING (SPA) ----------
+      const screens = {
+        catalog: document.getElementById('screen-catalog'),
+        archive: document.getElementById('screen-archive'),
+        detail: document.getElementById('screen-detail'),
+        search: document.getElementById('screen-search'),
+        help: document.getElementById('screen-help'),
+        admin: document.getElementById('screen-admin')
+      };
+
+      const navButtons = {
+        catalog: document.getElementById('navCatalog'),
+        archive: document.getElementById('navArchive'),
+        search: document.getElementById('navSearch'),
+        help: document.getElementById('navHelp')
+      };
+
+      window.showScreen = function(name) {
+        // hide all screens
+        Object.values(screens).forEach(s => s.classList.add('hidden'));
+        // show target
+        if (screens[name]) screens[name].classList.remove('hidden');
+
+        // update nav active state (only for bottom nav buttons)
+        Object.entries(navButtons).forEach(([key, btn]) => {
+          if (btn) btn.classList.toggle('active', key === name);
+        });
+
+        // when showing search, focus input and re-render
+        if (name === 'search') {
+          searchInput.focus();
+          renderSearch(searchInput.value);
+        }
+        // when showing catalog, re-render (in case data changed)
+        if (name === 'catalog') {
+          renderCatalog();
+        }
+      };
+
+      // ---------- INITIAL RENDER ----------
+      renderCatalog();
+      renderSearch(''); // pre-render search with empty query
+      showScreen('catalog');
+
+      // ---------- ADDITIONAL: close fullscreen on ESC (desktop) ----------
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') {
+          closeFullscreen();
+          closeModal();
+        }
+      });
+
+      // expose functions to global (needed for inline onclick)
+      window.renderCatalog = renderCatalog;
+      window.renderSearch = renderSearch;
+    })();
+  </script>
+</body>
+</html>
