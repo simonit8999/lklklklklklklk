@@ -856,6 +856,18 @@
         return await res.json();
       }
 
+      // Обновление товара (архив, soldout, редактирование)
+      async function apiUpdateProduct(id, data) {
+        // ВАЖНО: Если твой бот ожидает PATCH вместо PUT, поменяй 'PUT' на 'PATCH'
+        const res = await fetch(API_PRODUCTS + '/' + id, {
+          method: 'PUT', 
+          headers: API_HEADERS,
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      }
+
       async function apiDeleteProduct(id) {
         const res = await fetch(API_PRODUCTS + '/' + id, {
           method: 'DELETE',
@@ -889,14 +901,19 @@
         if (imgs.length === 0) {
           imgs = ['https://picsum.photos/id/100/600/600'];
         }
+
+        // Безопасное приведение к boolean (на случай если сервер вернет 1, "true", "1" и т.д.)
+        const isArchived = !!(p.archived === true || p.archived === 1 || p.archived === 'true' || p.archived === '1');
+        const isSoldOut = !!(p.soldOut === true || p.soldOut === 1 || p.soldOut === 'true' || p.soldOut === '1');
+
         return {
           id: p.id ?? p._id ?? idx + 1,
           name: p.name || p.title || 'UNNAMED',
           price: p.price || '',
           images: imgs,
           description: p.description || p.desc || '',
-          soldOut: !!p.soldOut,
-          archived: !!p.archived
+          soldOut: isSoldOut,
+          archived: isArchived
         };
       }
 
@@ -984,6 +1001,7 @@
       // ---------- ARCHIVE GRID ----------
       const archiveGrid = document.getElementById('archiveGrid');
       function renderArchive() {
+        // Товары у которых archived === true (без каких-либо проверок на админа)
         const archived = products.filter(p => p.archived);
         if (archived.length === 0) {
           archiveGrid.innerHTML = '<div style="grid-column:1/-1; font-family:\'Courier New\',monospace; padding:20px 0;">ARCHIVE IS EMPTY.</div>';
@@ -1078,12 +1096,8 @@
           ${actionButtonHTML}
         `;
 
-        // wire up scroll listener to update dots
         const carousel = document.getElementById('detailCarousel');
-        const dotsContainer = document.getElementById('carouselDots');
-        
         if (carousel && imgs.length > 1) {
-          // remove old handler if exists
           if (carousel._prevHandler) {
             carousel.removeEventListener('scroll', carousel._prevHandler);
           }
@@ -1099,7 +1113,6 @@
         showScreen('detail');
       };
 
-      // Functions for arrows and dots
       window.scrollCarousel = function(direction) {
         const carousel = document.getElementById('detailCarousel');
         if (!carousel) return;
@@ -1241,16 +1254,24 @@
         }
 
         if (editingProductId !== null) {
+          // При редактировании отправляем на сервер
           const p = products.find(x => Number(x.id) === Number(editingProductId));
-          if (p) {
-            p.name = name;
-            p.price = price;
-            p.description = desc;
-            p.images = images;
-            p.soldOut = soldOut;
+          const updateData = {
+            name: name,
+            price: price,
+            description: desc,
+            images: images,
+            soldOut: soldOut,
+            archived: p ? p.archived : false
+          };
+          try {
+            await apiUpdateProduct(editingProductId, updateData);
+            await loadProductsFromServer();
+            hideAdminForm();
+          } catch (err) {
+            console.error('edit error:', err);
+            alert('Сервер временно недоступен');
           }
-          hideAdminForm();
-          renderAll();
           return;
         }
 
@@ -1278,27 +1299,47 @@
         showAdminForm('edit', id);
       };
 
-      window.archiveProduct = function(id) {
+      // Теперь архивация отправляет запрос на сервер!
+      window.archiveProduct = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
-        if (p) {
-          p.archived = true;
-          renderAll();
+        if (!p) return;
+        
+        try {
+          // Отправляем строго { archived: true }
+          await apiUpdateProduct(p.id, { archived: true });
+          await loadProductsFromServer();
+          showScreen('archive'); // Сразу перекидываем в архив
+        } catch (err) {
+          console.error('archive error:', err);
+          alert('Сервер временно недоступен');
         }
       };
 
-      window.restoreProduct = function(id) {
+      // Восстановление тоже отправляет на сервер
+      window.restoreProduct = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
-        if (p) {
-          p.archived = false;
-          renderAll();
+        if (!p) return;
+
+        try {
+          await apiUpdateProduct(p.id, { archived: false });
+          await loadProductsFromServer();
+        } catch (err) {
+          console.error('restore error:', err);
+          alert('Сервер временно недоступен');
         }
       };
 
-      window.markSoldOut = function(id) {
+      // SOLD OUT тоже отправляет на сервер
+      window.markSoldOut = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
-        if (p) {
-          p.soldOut = true;
-          renderAll();
+        if (!p) return;
+
+        try {
+          await apiUpdateProduct(p.id, { soldOut: true });
+          await loadProductsFromServer();
+        } catch (err) {
+          console.error('soldOut error:', err);
+          alert('Сервер временно недоступен');
         }
       };
 
