@@ -858,9 +858,8 @@
 
       // Обновление товара (архив, soldout, редактирование)
       async function apiUpdateProduct(id, data) {
-        // ВАЖНО: Если твой бот ожидает PATCH вместо PUT, поменяй 'PUT' на 'PATCH'
         const res = await fetch(API_PRODUCTS + '/' + id, {
-          method: 'PUT', 
+          method: 'PATCH', 
           headers: API_HEADERS,
           body: JSON.stringify(data)
         });
