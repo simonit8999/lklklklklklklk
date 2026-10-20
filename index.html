@@ -237,16 +237,21 @@
     }
 
     /* ----- PRODUCT DETAIL (screen 3) ----- */
-    /* Swipe carousel */
+    /* Swipe carousel with overlay buttons */
+    .detail-carousel-wrapper {
+      position: relative;
+      margin-bottom: 8px;
+    }
+
     .detail-carousel {
       display: flex;
       overflow-x: auto;
       scroll-snap-type: x mandatory;
       -webkit-overflow-scrolling: touch;
       border: 3px solid #000;
-      margin-bottom: 16px;
       background: #eee;
       scrollbar-width: none; /* Firefox */
+      scroll-behavior: smooth; /* smooth scroll for button clicks */
     }
     .detail-carousel::-webkit-scrollbar {
       display: none;
@@ -263,20 +268,47 @@
       height: 100%;
       object-fit: cover;
       display: block;
+      pointer-events: none; /* prevents image drag interfering with swipe */
     }
+
+    /* Navigation arrows */
+    .carousel-arrow {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      background: #000;
+      color: #fff;
+      border: 2px solid #fff;
+      font-size: 24px;
+      font-family: 'Anton', sans-serif;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      z-index: 10;
+      opacity: 0.8;
+    }
+    .carousel-arrow:active {
+      opacity: 1;
+    }
+    .carousel-arrow.left { left: 8px; }
+    .carousel-arrow.right { right: 8px; }
+
     /* indicator dots */
     .carousel-dots {
       display: flex;
       justify-content: center;
-      gap: 6px;
-      margin-top: -8px;
+      gap: 8px;
       margin-bottom: 16px;
     }
     .carousel-dot {
-      width: 8px;
-      height: 8px;
-      background: #ccc;
+      width: 10px;
+      height: 10px;
+      background: #fff;
       border: 1px solid #000;
+      cursor: pointer;
     }
     .carousel-dot.active {
       background: #000;
@@ -842,8 +874,7 @@
           .filter(Boolean);
       }
 
-      // Normalize product from server: guarantee id, archived, soldOut, images[]
-      // Supports both legacy `image` (string) and new `images` (array) formats.
+      // Normalize product from server
       function normalizeProduct(p, idx) {
         let imgs = [];
         if (Array.isArray(p.images) && p.images.length > 0) {
@@ -869,7 +900,6 @@
         };
       }
 
-      // Recompute nextProductId based on max id
       function updateNextId() {
         let maxId = 0;
         for (const p of products) {
@@ -879,7 +909,6 @@
         nextProductId = maxId + 1;
       }
 
-      // ---------- LOAD FROM SERVER ----------
       async function loadProductsFromServer() {
         try {
           const data = await apiGetProducts();
@@ -897,7 +926,7 @@
         renderAll();
       }
 
-      // ---------- RENDER CATALOG (excludes archived; uses images[0]) ----------
+      // ---------- RENDER CATALOG ----------
       const catalogGrid = document.getElementById('catalogGrid');
       function renderCatalog() {
         const visible = products.filter(p => !p.archived);
@@ -920,7 +949,7 @@
         `).join('');
       }
 
-      // ---------- RENDER SEARCH (excludes archived; uses images[0]) ----------
+      // ---------- RENDER SEARCH ----------
       const searchInput = document.getElementById('searchInput');
       const searchGrid = document.getElementById('searchGrid');
       function renderSearch(query) {
@@ -967,7 +996,6 @@
         `).join('');
       }
 
-      // fullscreen overlay
       const fullscreenOverlay = document.getElementById('fullscreenOverlay');
       const fullscreenImage = document.getElementById('fullscreenImage');
 
@@ -985,10 +1013,9 @@
         if (e.target === fullscreenOverlay) closeFullscreen();
       });
 
-      // ---------- PRODUCT DETAIL (screen 3) WITH CAROUSEL ----------
+      // ---------- PRODUCT DETAIL WITH CAROUSEL ----------
       const detailScreen = document.getElementById('screen-detail');
       let currentProductId = null;
-      let carouselScrollHandler = null;
 
       window.openProductDetail = function(id) {
         const product = products.find(p => Number(p.id) === Number(id));
@@ -999,18 +1026,22 @@
           ? product.images
           : ['https://picsum.photos/id/100/600/600'];
 
-        // Build carousel slides
         const slides = imgs.map(src => `
           <div class="detail-carousel-slide">
             <img src="${src}" alt="${product.name}">
           </div>
         `).join('');
 
-        // Build dots only if >1 image
+        let arrowsHTML = '';
         let dotsHTML = '';
+        
         if (imgs.length > 1) {
+          arrowsHTML = `
+            <div class="carousel-arrow left" onclick="scrollCarousel(-1)">‹</div>
+            <div class="carousel-arrow right" onclick="scrollCarousel(1)">›</div>
+          `;
           dotsHTML = '<div class="carousel-dots" id="carouselDots">' +
-            imgs.map((_, i) => `<div class="carousel-dot${i === 0 ? ' active' : ''}" data-index="${i}"></div>`).join('') +
+            imgs.map((_, i) => `<div class="carousel-dot${i === 0 ? ' active' : ''}" data-index="${i}" onclick="scrollToSlide(${i})"></div>`).join('') +
             '</div>';
         }
 
@@ -1034,33 +1065,53 @@
 
         detailScreen.innerHTML = `
           <h1 class="screen-header" style="font-size:32px; margin-top:12px;">${product.name}</h1>
-          <div class="detail-carousel" id="detailCarousel">${slides}</div>
+          
+          <div class="detail-carousel-wrapper">
+            <div class="detail-carousel" id="detailCarousel">${slides}</div>
+            ${arrowsHTML}
+          </div>
           ${dotsHTML}
+          
           <div class="detail-price">${product.price}</div>
           ${soldOutBlock}
           <div class="detail-description">${product.description}</div>
           ${actionButtonHTML}
         `;
 
-        // wire up carousel dot indicators
+        // wire up scroll listener to update dots
         const carousel = document.getElementById('detailCarousel');
         const dotsContainer = document.getElementById('carouselDots');
-        if (carousel && dotsContainer && imgs.length > 1) {
-          // remove previous handler if any
-          if (carouselScrollHandler && carousel._prevHandler) {
+        
+        if (carousel && imgs.length > 1) {
+          // remove old handler if exists
+          if (carousel._prevHandler) {
             carousel.removeEventListener('scroll', carousel._prevHandler);
           }
           const handler = () => {
             const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
-            const dots = dotsContainer.querySelectorAll('.carousel-dot');
+            const dots = document.querySelectorAll('.carousel-dot');
             dots.forEach((d, i) => d.classList.toggle('active', i === idx));
           };
           carousel._prevHandler = handler;
           carousel.addEventListener('scroll', handler, { passive: true });
-          carouselScrollHandler = handler;
         }
 
         showScreen('detail');
+      };
+
+      // Functions for arrows and dots
+      window.scrollCarousel = function(direction) {
+        const carousel = document.getElementById('detailCarousel');
+        if (!carousel) return;
+        const slideWidth = carousel.clientWidth;
+        carousel.scrollBy({ left: slideWidth * direction, behavior: 'smooth' });
+      };
+
+      window.scrollToSlide = function(index) {
+        const carousel = document.getElementById('detailCarousel');
+        if (!carousel) return;
+        const slideWidth = carousel.clientWidth;
+        carousel.scrollTo({ left: slideWidth * index, behavior: 'smooth' });
       };
 
       // ---------- ORDER MODAL ----------
@@ -1100,7 +1151,7 @@
         if (e.target === orderModal) closeModal();
       });
 
-      // ---------- ADMIN: LIST & FORM ----------
+      // ---------- ADMIN ----------
       const adminList = document.getElementById('adminList');
       const adminFormContainer = document.getElementById('adminFormContainer');
       const adminFormTitle = document.getElementById('adminFormTitle');
@@ -1174,7 +1225,6 @@
         editingProductId = null;
       };
 
-      // Save: CREATE sends POST to server with images array; EDIT updates local only
       window.saveAdminForm = async function() {
         const name = adminName.value.trim();
         const price = adminPrice.value.trim();
@@ -1191,7 +1241,6 @@
         }
 
         if (editingProductId !== null) {
-          // Local edit (no PATCH endpoint provided). Update local array.
           const p = products.find(x => Number(x.id) === Number(editingProductId));
           if (p) {
             p.name = name;
@@ -1205,7 +1254,6 @@
           return;
         }
 
-        // CREATE — send POST to server with `images` array
         const newProduct = {
           name: name,
           price: price,
@@ -1230,7 +1278,6 @@
         showAdminForm('edit', id);
       };
 
-      // ARCHIVE / RESTORE / SOLD OUT are local-only operations
       window.archiveProduct = function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
         if (p) {
@@ -1255,7 +1302,6 @@
         }
       };
 
-      // DELETE — send DELETE to server, remove from UI on success
       window.deleteProduct = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
         if (!p) return;
@@ -1271,7 +1317,6 @@
         }
       };
 
-      // ---------- RENDER ALL ----------
       function renderAll() {
         renderCatalog();
         renderSearch(searchInput.value);
@@ -1279,7 +1324,7 @@
         renderAdminList();
       }
 
-      // ---------- SCREEN SWITCHING (SPA) WITH FADE-IN ----------
+      // ---------- SPA NAVIGATION ----------
       const screens = {
         catalog: document.getElementById('screen-catalog'),
         archive: document.getElementById('screen-archive'),
@@ -1321,15 +1366,9 @@
           if (btn) btn.classList.toggle('active', key === name);
         });
 
-        if (name === 'search') {
-          renderSearch(searchInput.value);
-        }
-        if (name === 'catalog') {
-          renderCatalog();
-        }
-        if (name === 'archive') {
-          renderArchive();
-        }
+        if (name === 'search') renderSearch(searchInput.value);
+        if (name === 'catalog') renderCatalog();
+        if (name === 'archive') renderArchive();
         if (name === 'admin') {
           hideAdminForm();
           renderAdminList();
@@ -1343,19 +1382,12 @@
       showScreen('catalog');
       loadProductsFromServer();
 
-      // ---------- ADDITIONAL: close fullscreen on ESC ----------
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           closeFullscreen();
           closeModal();
         }
       });
-
-      // expose for debugging
-      window.renderCatalog = renderCatalog;
-      window.renderSearch = renderSearch;
-      window.renderArchive = renderArchive;
-      window.loadProductsFromServer = loadProductsFromServer;
     })();
   </script>
 </body>
