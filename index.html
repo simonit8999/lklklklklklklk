@@ -735,6 +735,15 @@
     (function() {
       'use strict';
 
+      // ---------- API CONFIG ----------
+      const API_BASE = 'https://cricket-palpable-chatter.ngrok-free.dev';
+      const API_PRODUCTS = API_BASE + '/api/products';
+      // headers required to bypass ngrok browser warning page
+      const API_HEADERS = {
+        'Content-Type': 'application/json',
+        'ngrok-skip-browser-warning': 'true'
+      };
+
       // ---------- TELEGRAM WEBAPP ----------
       const tg = window.Telegram?.WebApp;
       if (tg) {
@@ -750,51 +759,84 @@
         adminBtn.classList.remove('hidden');
       }
 
-      // ---------- TEST DATA (with archived flag) ----------
-      const products = [
-        {
-          id: 1,
-          name: 'OVERSIZED COAT',
-          price: '€ 890',
-          image: 'https://picsum.photos/id/1011/600/600',
-          description: 'BLACK WOOL OVERSIZED COAT. ARCHIVE PIECE FROM 2019. DISTRESSED FINISH. ONE SIZE.',
-          soldOut: false,
-          archived: false
-        },
-        {
-          id: 2,
-          name: 'CARGO PANTS',
-          price: '€ 420',
-          image: 'https://picsum.photos/id/1012/600/600',
-          description: 'TECHNICAL CARGO PANTS WITH MULTIPLE POCKETS. WATER-REPELLENT FABRIC. UNISEX.',
-          soldOut: true,
-          archived: false
-        },
-        {
-          id: 3,
-          name: 'LEATHER JACKET',
-          price: '€ 1200',
-          image: 'https://picsum.photos/id/1025/600/600',
-          description: 'BLACK LEATHER BIKER JACKET. HAND-FINISHED. SILVER HARDWARE. LIMITED EDITION 1/10.',
-          soldOut: false,
-          archived: false
-        },
-        {
-          id: 4,
-          name: 'KNIT BEANIE',
-          price: '€ 110',
-          image: 'https://picsum.photos/id/1040/600/600',
-          description: 'RIBBED KNIT BEANIE. MERINO WOOL BLEND. ONE SIZE. MADE IN ITALY.',
-          soldOut: false,
-          archived: false
-        }
-      ];
-
-      let nextProductId = 5;
+      // ---------- GLOBAL STATE ----------
+      let products = [];
+      let nextProductId = 1;
 
       // sorted: available first, sold out at end
       function getSortedProducts(list) {
         return [...list].sort((a, b) => (a.soldOut === b.soldOut ? 0 : a.soldOut ? 1 : -1));
+      }
+
+      // ---------- API HELPERS ----------
+      async function apiGetProducts() {
+        const res = await fetch(API_PRODUCTS, {
+          method: 'GET',
+          headers: API_HEADERS
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      }
+
+      async function apiCreateProduct(data) {
+        const res = await fetch(API_PRODUCTS, {
+          method: 'POST',
+          headers: API_HEADERS,
+          body: JSON.stringify(data)
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return await res.json();
+      }
+
+      async function apiDeleteProduct(id) {
+        const res = await fetch(API_PRODUCTS + '/' + id, {
+          method: 'DELETE',
+          headers: API_HEADERS
+        });
+        if (!res.ok) throw new Error('HTTP ' + res.status);
+        return true;
+      }
+
+      // Normalize product from server: guarantee id, archived, soldOut fields
+      function normalizeProduct(p, idx) {
+        return {
+          id: p.id ?? p._id ?? idx + 1,
+          name: p.name || p.title || 'UNNAMED',
+          price: p.price || '',
+          image: p.image || p.photo || 'https://picsum.photos/id/100/600/600',
+          description: p.description || p.desc || '',
+          soldOut: !!p.soldOut,
+          archived: !!p.archived
+        };
+      }
+
+      // Recompute nextProductId based on max id
+      function updateNextId() {
+        let maxId = 0;
+        for (const p of products) {
+          const n = Number(p.id);
+          if (!isNaN(n) && n > maxId) maxId = n;
+        }
+        nextProductId = maxId + 1;
+      }
+
+      // ---------- LOAD FROM SERVER ----------
+      async function loadProductsFromServer() {
+        try {
+          const data = await apiGetProducts();
+          // Expect an array; if server wraps in object, try common keys
+          let arr = Array.isArray(data) ? data
+                    : Array.isArray(data.products) ? data.products
+                    : Array.isArray(data.data) ? data.data
+                    : [];
+          products = arr.map(normalizeProduct);
+          updateNextId();
+        } catch (err) {
+          console.error('loadProducts error:', err);
+          alert('Сервер временно недоступен');
+          products = [];
+        }
+        renderAll();
       }
 
       // ---------- RENDER CATALOG (excludes archived) ----------
@@ -852,7 +894,7 @@
         renderSearch(e.target.value);
       });
 
-      // ---------- ARCHIVE GRID (shows only archived items) ----------
+      // ---------- ARCHIVE GRID ----------
       const archiveGrid = document.getElementById('archiveGrid');
       function renderArchive() {
         const archived = products.filter(p => p.archived);
@@ -890,9 +932,9 @@
       let currentProductId = null;
 
       window.openProductDetail = function(id) {
-        const product = products.find(p => p.id === id);
+        const product = products.find(p => Number(p.id) === Number(id));
         if (!product) return;
-        currentProductId = id;
+        currentProductId = product.id;
 
         let actionButtonHTML;
         if (product.soldOut) {
@@ -992,6 +1034,7 @@
                 ${p.archived
                   ? `<button onclick="restoreProduct(${p.id})">RESTORE</button>`
                   : `<button onclick="archiveProduct(${p.id})">ARCHIVE</button>`}
+                <button class="danger" onclick="deleteProduct(${p.id})">DELETE</button>
                 ${!p.archived && !p.soldOut
                   ? `<button class="danger" onclick="markSoldOut(${p.id})">SOLD OUT</button>`
                   : ''}
@@ -1015,7 +1058,7 @@
           adminImage.value = 'https://picsum.photos/id/100/600/600';
           adminSoldOut.checked = false;
         } else if (mode === 'edit' && productId) {
-          const p = products.find(x => x.id === productId);
+          const p = products.find(x => Number(x.id) === Number(productId));
           if (!p) return;
           editingProductId = productId;
           adminFormTitle.textContent = 'РЕДАКТИРОВАТЬ: ' + p.name;
@@ -1034,7 +1077,8 @@
         editingProductId = null;
       };
 
-      window.saveAdminForm = function() {
+      // Save: CREATE sends POST to server; EDIT updates local only (no PATCH endpoint specified)
+      window.saveAdminForm = async function() {
         const name = adminName.value.trim();
         const price = adminPrice.value.trim();
         const desc = adminDesc.value.trim();
@@ -1047,7 +1091,8 @@
         }
 
         if (editingProductId !== null) {
-          const p = products.find(x => x.id === editingProductId);
+          // Local edit (no PATCH endpoint provided). Update local array.
+          const p = products.find(x => Number(x.id) === Number(editingProductId));
           if (p) {
             p.name = name;
             p.price = price;
@@ -1055,60 +1100,86 @@
             p.image = image;
             p.soldOut = soldOut;
           }
-        } else {
-          products.push({
-            id: nextProductId++,
-            name: name,
-            price: price,
-            description: desc,
-            image: image,
-            soldOut: soldOut,
-            archived: false
-          });
+          hideAdminForm();
+          renderAll();
+          return;
         }
 
-        hideAdminForm();
-        renderAdminList();
-        renderCatalog();
-        renderSearch(searchInput.value);
-        renderArchive();
+        // CREATE — send POST to server
+        const newProduct = {
+          name: name,
+          price: price,
+          description: desc,
+          image: image,
+          soldOut: soldOut,
+          archived: false
+        };
+
+        try {
+          await apiCreateProduct(newProduct);
+          // Reload from server to get authoritative state
+          await loadProductsFromServer();
+          hideAdminForm();
+          showScreen('admin');
+        } catch (err) {
+          console.error('create error:', err);
+          alert('Сервер временно недоступен');
+        }
       };
 
       window.editProduct = function(id) {
         showAdminForm('edit', id);
       };
 
+      // ARCHIVE / RESTORE / SOLD OUT are local-only operations
       window.archiveProduct = function(id) {
-        const p = products.find(x => x.id === id);
+        const p = products.find(x => Number(x.id) === Number(id));
         if (p) {
           p.archived = true;
-          renderAdminList();
-          renderCatalog();
-          renderSearch(searchInput.value);
-          renderArchive();
+          renderAll();
         }
       };
 
       window.restoreProduct = function(id) {
-        const p = products.find(x => x.id === id);
+        const p = products.find(x => Number(x.id) === Number(id));
         if (p) {
           p.archived = false;
-          renderAdminList();
-          renderCatalog();
-          renderSearch(searchInput.value);
-          renderArchive();
+          renderAll();
         }
       };
 
       window.markSoldOut = function(id) {
-        const p = products.find(x => x.id === id);
+        const p = products.find(x => Number(x.id) === Number(id));
         if (p) {
           p.soldOut = true;
-          renderAdminList();
-          renderCatalog();
-          renderSearch(searchInput.value);
+          renderAll();
         }
       };
+
+      // DELETE — send DELETE to server, remove from UI on success
+      window.deleteProduct = async function(id) {
+        const p = products.find(x => Number(x.id) === Number(id));
+        if (!p) return;
+        if (!confirm('Удалить товар "' + p.name + '"?')) return;
+
+        try {
+          await apiDeleteProduct(p.id);
+          // Remove from local array and re-render
+          products = products.filter(x => Number(x.id) !== Number(p.id));
+          renderAll();
+        } catch (err) {
+          console.error('delete error:', err);
+          alert('Сервер временно недоступен');
+        }
+      };
+
+      // ---------- RENDER ALL ----------
+      function renderAll() {
+        renderCatalog();
+        renderSearch(searchInput.value);
+        renderArchive();
+        renderAdminList();
+      }
 
       // ---------- SCREEN SWITCHING (SPA) WITH FADE-IN ----------
       const screens = {
@@ -1130,48 +1201,37 @@
       let currentScreenName = 'catalog';
 
       window.showScreen = function(name) {
-        // Avoid re-triggering animation if already on the same screen
-        // (still re-render data for safety)
         const isSameScreen = (currentScreenName === name);
 
-        // hide all screens
         Object.values(screens).forEach(s => {
           s.classList.add('hidden');
           s.classList.remove('fade-in');
         });
 
-        // show target
         const target = screens[name];
         if (target) {
           target.classList.remove('hidden');
-          // Only animate when actually switching screens
           if (!isSameScreen) {
             target.classList.add('fade-in');
-            // Remove animation class after it finishes so it can be re-added next time
             setTimeout(() => {
               target.classList.remove('fade-in');
             }, 220);
           }
         }
 
-        // update nav active state
         Object.entries(navButtons).forEach(([key, btn]) => {
           if (btn) btn.classList.toggle('active', key === name);
         });
 
-        // when showing search, re-render only (NO autofocus)
         if (name === 'search') {
           renderSearch(searchInput.value);
         }
-        // when showing catalog, re-render
         if (name === 'catalog') {
           renderCatalog();
         }
-        // when showing archive, re-render
         if (name === 'archive') {
           renderArchive();
         }
-        // when showing admin, re-render list and hide form
         if (name === 'admin') {
           hideAdminForm();
           renderAdminList();
@@ -1180,12 +1240,11 @@
         currentScreenName = name;
       };
 
-      // ---------- INITIAL RENDER ----------
-      renderCatalog();
-      renderSearch('');
-      renderArchive();
-      renderAdminList();
+      // ---------- INITIAL LOAD ----------
+      // Start with catalog rendering empty, then fetch from server
+      renderAll();
       showScreen('catalog');
+      loadProductsFromServer();
 
       // ---------- ADDITIONAL: close fullscreen on ESC ----------
       document.addEventListener('keydown', (e) => {
@@ -1195,9 +1254,11 @@
         }
       });
 
+      // expose for debugging
       window.renderCatalog = renderCatalog;
       window.renderSearch = renderSearch;
       window.renderArchive = renderArchive;
+      window.loadProductsFromServer = loadProductsFromServer;
     })();
   </script>
 </body>
