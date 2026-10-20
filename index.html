@@ -17,17 +17,22 @@
       border-radius: 0 !important; /* brutalist no radius */
     }
 
+    html, body {
+      height: 100%;
+      height: 100dvh; /* dynamic viewport height for mobile */
+      overflow: hidden; /* prevent page-level scrolling */
+    }
+
     body {
       background-color: #FFFFFF;
       color: #000000;
       font-family: 'Courier New', Courier, monospace;
       font-weight: 400;
       line-height: 1.2;
-      min-height: 100vh;
       display: flex;
       flex-direction: column;
       -webkit-font-smoothing: antialiased;
-      padding-bottom: 70px; /* space for fixed bottom nav */
+      padding-bottom: 64px; /* exact height of bottom nav */
     }
 
     /* ----- TYPOGRAPHY ----- */
@@ -45,17 +50,20 @@
       max-width: 600px;
       margin: 0 auto;
       width: 100%;
+      overflow-y: auto;
+      -webkit-overflow-scrolling: touch;
+      min-height: 0; /* critical for flex children to shrink */
     }
 
     .hidden {
       display: none !important;
     }
 
-    /* ----- ADMIN BUTTON (top-left) ----- */
+    /* ----- ADMIN BUTTON (top-right, no overlap) ----- */
     #adminBtn {
       position: fixed;
       top: 12px;
-      left: 12px;
+      right: 12px;
       z-index: 1000;
       background: #000;
       color: #fff;
@@ -72,6 +80,11 @@
 
     #adminBtn:hover {
       background: #222;
+    }
+
+    /* add top padding to container so fixed admin btn doesn't overlap headers */
+    .container {
+      padding-top: 56px; /* space for admin button */
     }
 
     /* ----- SCREEN HEADER ----- */
@@ -393,7 +406,94 @@
       word-break: break-all;
     }
 
-    /* ----- ADMIN SCREEN (form) ----- */
+    /* ----- ADMIN SCREEN (list + form) ----- */
+    .admin-section-title {
+      font-family: 'Anton', sans-serif;
+      font-size: 22px;
+      margin: 24px 0 12px;
+      border-bottom: 3px solid #000;
+      padding-bottom: 6px;
+      text-transform: uppercase;
+    }
+
+    .admin-product-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      border: 3px solid #000;
+      padding: 8px 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .admin-product-info {
+      flex: 1 1 120px;
+      min-width: 100px;
+    }
+
+    .admin-product-name {
+      font-family: 'Anton', sans-serif;
+      font-size: 16px;
+      text-transform: uppercase;
+      line-height: 1.2;
+    }
+
+    .admin-product-price {
+      font-family: 'Courier New', monospace;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .admin-product-status {
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      color: #666;
+      margin-top: 2px;
+    }
+
+    .admin-actions {
+      display: flex;
+      gap: 4px;
+      flex-wrap: wrap;
+    }
+
+    .admin-actions button {
+      font-family: 'Anton', sans-serif;
+      font-size: 11px;
+      letter-spacing: 0.5px;
+      padding: 6px 8px;
+      border: 2px solid #000;
+      background: #fff;
+      color: #000;
+      cursor: pointer;
+      text-transform: uppercase;
+      transition: none;
+    }
+
+    .admin-actions button:hover {
+      background: #000;
+      color: #fff;
+    }
+
+    .admin-actions button.danger {
+      border-color: #000;
+    }
+
+    .admin-add-btn {
+      width: 100%;
+      background: #000;
+      color: #fff;
+      border: 3px solid #000;
+      font-family: 'Anton', sans-serif;
+      font-size: 18px;
+      letter-spacing: 2px;
+      padding: 16px 0;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin: 20px 0 8px;
+    }
+
     .admin-form label {
       display: block;
       font-family: 'Anton', sans-serif;
@@ -440,7 +540,7 @@
       letter-spacing: 1px;
     }
 
-    .admin-form button {
+    .admin-form button.save-btn {
       width: 100%;
       background: #000;
       color: #fff;
@@ -452,6 +552,20 @@
       text-transform: uppercase;
       cursor: pointer;
       margin-top: 24px;
+    }
+
+    .admin-form button.back-btn {
+      width: 100%;
+      background: #fff;
+      color: #000;
+      border: 3px solid #000;
+      font-family: 'Anton', sans-serif;
+      font-size: 16px;
+      letter-spacing: 2px;
+      padding: 12px 0;
+      text-transform: uppercase;
+      cursor: pointer;
+      margin-top: 12px;
     }
 
     /* ----- BOTTOM NAV (fixed) ----- */
@@ -537,7 +651,7 @@
       <div id="searchGrid" class="product-grid"></div>
     </div>
 
-    <!-- SCREEN 5: HELP (UPDATED LINKS) -->
+    <!-- SCREEN 5: HELP -->
     <div id="screen-help" class="screen hidden">
       <h1 class="screen-header">HELP</h1>
       <div class="help-block">
@@ -551,25 +665,36 @@
       </div>
     </div>
 
-    <!-- SCREEN 6: ADMIN -->
+    <!-- SCREEN 6: ADMIN (list + form) -->
     <div id="screen-admin" class="screen hidden">
-      <h1 class="screen-header">ADMIN · ADD ITEM</h1>
-      <div class="admin-form">
-        <label>Название</label>
-        <input type="text" id="adminName" placeholder="ITEM NAME">
+      <h1 class="screen-header" style="margin-top:12px;">ADMIN · PRODUCTS</h1>
+      <div id="adminList"></div>
+      <button class="admin-add-btn" onclick="showAdminForm('create')">+ ДОБАВИТЬ НОВЫЙ ТОВАР</button>
 
-        <label>Цена</label>
-        <input type="text" id="adminPrice" placeholder="€ 250">
+      <!-- admin form (hidden by default) -->
+      <div id="adminFormContainer" class="hidden">
+        <h2 class="admin-section-title" id="adminFormTitle">НОВЫЙ ТОВАР</h2>
+        <div class="admin-form">
+          <label>Название</label>
+          <input type="text" id="adminName" placeholder="ITEM NAME">
 
-        <label>Описание</label>
-        <textarea id="adminDesc" placeholder="ITEM DESCRIPTION..."></textarea>
+          <label>Цена</label>
+          <input type="text" id="adminPrice" placeholder="€ 250">
 
-        <div class="checkbox-row">
-          <input type="checkbox" id="adminSoldOut">
-          <span>SOLD OUT</span>
+          <label>Описание</label>
+          <textarea id="adminDesc" placeholder="ITEM DESCRIPTION..."></textarea>
+
+          <label>URL изображения</label>
+          <input type="text" id="adminImage" placeholder="https://...">
+
+          <div class="checkbox-row">
+            <input type="checkbox" id="adminSoldOut">
+            <span>SOLD OUT</span>
+          </div>
+
+          <button class="save-btn" onclick="saveAdminForm()">СОХРАНИТЬ</button>
+          <button class="back-btn" onclick="hideAdminForm()">ОТМЕНА</button>
         </div>
-
-        <button onclick="alert('Форма сохранена (заглушка)')">СОХРАНИТЬ</button>
       </div>
     </div>
   </div>
@@ -619,7 +744,7 @@
         adminBtn.classList.remove('hidden');
       }
 
-      // ---------- TEST DATA ----------
+      // ---------- TEST DATA (with archived flag) ----------
       const products = [
         {
           id: 1,
@@ -627,7 +752,8 @@
           price: '€ 890',
           image: 'https://picsum.photos/id/1011/600/600',
           description: 'BLACK WOOL OVERSIZED COAT. ARCHIVE PIECE FROM 2019. DISTRESSED FINISH. ONE SIZE.',
-          soldOut: false
+          soldOut: false,
+          archived: false
         },
         {
           id: 2,
@@ -635,7 +761,8 @@
           price: '€ 420',
           image: 'https://picsum.photos/id/1012/600/600',
           description: 'TECHNICAL CARGO PANTS WITH MULTIPLE POCKETS. WATER-REPELLENT FABRIC. UNISEX.',
-          soldOut: true
+          soldOut: true,
+          archived: false
         },
         {
           id: 3,
@@ -643,7 +770,8 @@
           price: '€ 1200',
           image: 'https://picsum.photos/id/1025/600/600',
           description: 'BLACK LEATHER BIKER JACKET. HAND-FINISHED. SILVER HARDWARE. LIMITED EDITION 1/10.',
-          soldOut: false
+          soldOut: false,
+          archived: false
         },
         {
           id: 4,
@@ -651,19 +779,27 @@
           price: '€ 110',
           image: 'https://picsum.photos/id/1040/600/600',
           description: 'RIBBED KNIT BEANIE. MERINO WOOL BLEND. ONE SIZE. MADE IN ITALY.',
-          soldOut: false
+          soldOut: false,
+          archived: false
         }
       ];
+
+      let nextProductId = 5;
 
       // sorted: available first, sold out at end
       function getSortedProducts(list) {
         return [...list].sort((a, b) => (a.soldOut === b.soldOut ? 0 : a.soldOut ? 1 : -1));
       }
 
-      // ---------- RENDER CATALOG ----------
+      // ---------- RENDER CATALOG (excludes archived) ----------
       const catalogGrid = document.getElementById('catalogGrid');
       function renderCatalog() {
-        const sorted = getSortedProducts(products);
+        const visible = products.filter(p => !p.archived);
+        const sorted = getSortedProducts(visible);
+        if (sorted.length === 0) {
+          catalogGrid.innerHTML = '<div style="grid-column:1/-1; font-family:\'Courier New\',monospace; padding:20px 0;">NO ITEMS IN CATALOG.</div>';
+          return;
+        }
         catalogGrid.innerHTML = sorted.map(p => `
           <div class="product-card" onclick="openProductDetail(${p.id})">
             <div class="product-image-wrapper">
@@ -678,14 +814,14 @@
         `).join('');
       }
 
-      // ---------- RENDER SEARCH ----------
+      // ---------- RENDER SEARCH (excludes archived) ----------
       const searchInput = document.getElementById('searchInput');
       const searchGrid = document.getElementById('searchGrid');
       function renderSearch(query) {
         const q = query.trim().toLowerCase();
-        let filtered = products;
+        let filtered = products.filter(p => !p.archived);
         if (q) {
-          filtered = products.filter(p => p.name.toLowerCase().includes(q));
+          filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
         }
         const sorted = getSortedProducts(filtered);
         if (sorted.length === 0) {
@@ -710,17 +846,20 @@
         renderSearch(e.target.value);
       });
 
-      // ---------- ARCHIVE GRID ----------
+      // ---------- ARCHIVE GRID (shows only archived items) ----------
       const archiveGrid = document.getElementById('archiveGrid');
-      // use first 6 product images as archive (square)
-      const archiveImages = products.slice(0, 6).map(p => p.image);
-      // duplicate if needed
-      while (archiveImages.length < 6) archiveImages.push(products[0].image);
-      archiveGrid.innerHTML = archiveImages.map((src, idx) => `
-        <div class="archive-item" onclick="openFullscreen('${src}')">
-          <img src="${src}" alt="archive ${idx}">
-        </div>
-      `).join('');
+      function renderArchive() {
+        const archived = products.filter(p => p.archived);
+        if (archived.length === 0) {
+          archiveGrid.innerHTML = '<div style="grid-column:1/-1; font-family:\'Courier New\',monospace; padding:20px 0;">ARCHIVE IS EMPTY.</div>';
+          return;
+        }
+        archiveGrid.innerHTML = archived.map(p => `
+          <div class="archive-item" onclick="openFullscreen('${p.image}')">
+            <img src="${p.image}" alt="${p.name}">
+          </div>
+        `).join('');
+      }
 
       // fullscreen overlay
       const fullscreenOverlay = document.getElementById('fullscreenOverlay');
@@ -740,7 +879,7 @@
         if (e.target === fullscreenOverlay) closeFullscreen();
       });
 
-      // ---------- PRODUCT DETAIL (screen 3) — UPDATED SOLD OUT ----------
+      // ---------- PRODUCT DETAIL (screen 3) ----------
       const detailScreen = document.getElementById('screen-detail');
       let currentProductId = null;
 
@@ -749,7 +888,6 @@
         if (!product) return;
         currentProductId = id;
 
-        // Build the button: disabled grey "SOLD OUT" if sold out, else normal order button
         let actionButtonHTML;
         if (product.soldOut) {
           actionButtonHTML = `
@@ -777,7 +915,6 @@
           ${actionButtonHTML}
         `;
 
-        // switch to detail screen
         showScreen('detail');
       };
 
@@ -794,7 +931,6 @@
         orderModal.classList.add('hidden');
       };
 
-      // ---------- SUBMIT ORDER — UPDATED WITH tg.close() ----------
       window.submitOrder = function() {
         const comment = orderComment.value.trim();
         const payload = {
@@ -805,9 +941,6 @@
         if (tg && tg.sendData) {
           try {
             tg.sendData(JSON.stringify(payload));
-            // Close the Mini App immediately after sending data.
-            // This is required for sendData to work properly and prevents
-            // the user from getting stuck in the app window.
             tg.close();
           } catch (e) {
             alert('Ошибка отправки: ' + e.message);
@@ -818,10 +951,159 @@
         closeModal();
       };
 
-      // close modal on overlay click
       orderModal.addEventListener('click', (e) => {
         if (e.target === orderModal) closeModal();
       });
+
+      // ---------- ADMIN: LIST & FORM ----------
+      const adminList = document.getElementById('adminList');
+      const adminFormContainer = document.getElementById('adminFormContainer');
+      const adminFormTitle = document.getElementById('adminFormTitle');
+      const adminName = document.getElementById('adminName');
+      const adminPrice = document.getElementById('adminPrice');
+      const adminDesc = document.getElementById('adminDesc');
+      const adminImage = document.getElementById('adminImage');
+      const adminSoldOut = document.getElementById('adminSoldOut');
+
+      let editingProductId = null;
+
+      window.renderAdminList = function() {
+        if (products.length === 0) {
+          adminList.innerHTML = '<div style="padding:20px 0; font-family:\'Courier New\',monospace;">NO PRODUCTS YET.</div>';
+          return;
+        }
+        adminList.innerHTML = products.map(p => {
+          const status = p.archived ? 'ARCHIVED' : (p.soldOut ? 'SOLD OUT' : 'ACTIVE');
+          return `
+            <div class="admin-product-row">
+              <div class="admin-product-info">
+                <div class="admin-product-name">${p.name}</div>
+                <div class="admin-product-price">${p.price}</div>
+                <div class="admin-product-status">${status}</div>
+              </div>
+              <div class="admin-actions">
+                <button onclick="editProduct(${p.id})">EDIT</button>
+                ${p.archived
+                  ? `<button onclick="restoreProduct(${p.id})">RESTORE</button>`
+                  : `<button onclick="archiveProduct(${p.id})">ARCHIVE</button>`}
+                ${!p.archived && !p.soldOut
+                  ? `<button class="danger" onclick="markSoldOut(${p.id})">SOLD OUT</button>`
+                  : ''}
+              </div>
+            </div>
+          `;
+        }).join('');
+      };
+
+      window.showAdminForm = function(mode, productId) {
+        editingProductId = null;
+        adminFormContainer.classList.remove('hidden');
+        adminList.classList.add('hidden');
+        document.querySelector('.admin-add-btn').classList.add('hidden');
+
+        if (mode === 'create') {
+          adminFormTitle.textContent = 'НОВЫЙ ТОВАР';
+          adminName.value = '';
+          adminPrice.value = '';
+          adminDesc.value = '';
+          adminImage.value = 'https://picsum.photos/id/100/600/600';
+          adminSoldOut.checked = false;
+        } else if (mode === 'edit' && productId) {
+          const p = products.find(x => x.id === productId);
+          if (!p) return;
+          editingProductId = productId;
+          adminFormTitle.textContent = 'РЕДАКТИРОВАТЬ: ' + p.name;
+          adminName.value = p.name;
+          adminPrice.value = p.price;
+          adminDesc.value = p.description;
+          adminImage.value = p.image;
+          adminSoldOut.checked = p.soldOut;
+        }
+      };
+
+      window.hideAdminForm = function() {
+        adminFormContainer.classList.add('hidden');
+        adminList.classList.remove('hidden');
+        document.querySelector('.admin-add-btn').classList.remove('hidden');
+        editingProductId = null;
+      };
+
+      window.saveAdminForm = function() {
+        const name = adminName.value.trim();
+        const price = adminPrice.value.trim();
+        const desc = adminDesc.value.trim();
+        const image = adminImage.value.trim() || 'https://picsum.photos/id/100/600/600';
+        const soldOut = adminSoldOut.checked;
+
+        if (!name || !price) {
+          alert('Заполните название и цену.');
+          return;
+        }
+
+        if (editingProductId !== null) {
+          // EDIT existing
+          const p = products.find(x => x.id === editingProductId);
+          if (p) {
+            p.name = name;
+            p.price = price;
+            p.description = desc;
+            p.image = image;
+            p.soldOut = soldOut;
+          }
+        } else {
+          // CREATE new
+          products.push({
+            id: nextProductId++,
+            name: name,
+            price: price,
+            description: desc,
+            image: image,
+            soldOut: soldOut,
+            archived: false          });
+        }
+
+        hideAdminForm();
+        renderAdminList();
+        renderCatalog();
+        renderSearch(searchInput.value);
+        renderArchive();
+      };
+
+      window.editProduct = function(id) {
+        showAdminForm('edit', id);
+      };
+
+      window.archiveProduct = function(id) {
+        const p = products.find(x => x.id === id);
+        if (p) {
+          p.archived = true;
+          renderAdminList();
+          renderCatalog();
+          renderSearch(searchInput.value);
+          renderArchive();
+        }
+      };
+
+      window.restoreProduct = function(id) {
+        const p = products.find(x => x.id === id);
+        if (p) {
+          p.archived = false;
+          renderAdminList();
+          renderCatalog();
+          renderSearch(searchInput.value);
+          renderArchive();
+        }
+      };
+
+      window.markSoldOut = function(id) {
+        const p = products.find(x => x.id === id);
+        if (p) {
+          p.soldOut = true;
+          renderAdminList();
+          renderCatalog();
+          renderSearch(searchInput.value);
+        }
+      };
 
       // ---------- SCREEN SWITCHING (SPA) ----------
       const screens = {
@@ -846,28 +1128,38 @@
         // show target
         if (screens[name]) screens[name].classList.remove('hidden');
 
-        // update nav active state (only for bottom nav buttons)
+        // update nav active state
         Object.entries(navButtons).forEach(([key, btn]) => {
           if (btn) btn.classList.toggle('active', key === name);
         });
 
-        // when showing search, focus input and re-render
+        // when showing search, re-render only (NO autofocus)
         if (name === 'search') {
-          searchInput.focus();
           renderSearch(searchInput.value);
         }
-        // when showing catalog, re-render (in case data changed)
+        // when showing catalog, re-render
         if (name === 'catalog') {
           renderCatalog();
+        }
+        // when showing archive, re-render
+        if (name === 'archive') {
+          renderArchive();
+        }
+        // when showing admin, re-render list and hide form
+        if (name === 'admin') {
+          hideAdminForm();
+          renderAdminList();
         }
       };
 
       // ---------- INITIAL RENDER ----------
       renderCatalog();
-      renderSearch(''); // pre-render search with empty query
+      renderSearch('');
+      renderArchive();
+      renderAdminList();
       showScreen('catalog');
 
-      // ---------- ADDITIONAL: close fullscreen on ESC (desktop) ----------
+      // ---------- ADDITIONAL: close fullscreen on ESC ----------
       document.addEventListener('keydown', (e) => {
         if (e.key === 'Escape') {
           closeFullscreen();
@@ -875,10 +1167,10 @@
         }
       });
 
-      // expose functions to global (needed for inline onclick)
       window.renderCatalog = renderCatalog;
       window.renderSearch = renderSearch;
+      window.renderArchive = renderArchive;
     })();
   </script>
 </body>
-</html>
+  </html>
