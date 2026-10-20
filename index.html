@@ -53,10 +53,21 @@
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
       min-height: 0; /* critical for flex children to shrink */
+      padding-top: 56px; /* space for admin button */
     }
 
     .hidden {
       display: none !important;
+    }
+
+    /* ----- FADE-IN ANIMATION ----- */
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    .fade-in {
+      animation: fadeIn 0.2s ease-in-out;
     }
 
     /* ----- ADMIN BUTTON (top-right, no overlap) ----- */
@@ -80,11 +91,6 @@
 
     #adminBtn:hover {
       background: #222;
-    }
-
-    /* add top padding to container so fixed admin btn doesn't overlap headers */
-    .container {
-      padding-top: 56px; /* space for admin button */
     }
 
     /* ----- SCREEN HEADER ----- */
@@ -1041,7 +1047,6 @@
         }
 
         if (editingProductId !== null) {
-          // EDIT existing
           const p = products.find(x => x.id === editingProductId);
           if (p) {
             p.name = name;
@@ -1051,7 +1056,6 @@
             p.soldOut = soldOut;
           }
         } else {
-          // CREATE new
           products.push({
             id: nextProductId++,
             name: name,
@@ -1059,7 +1063,8 @@
             description: desc,
             image: image,
             soldOut: soldOut,
-            archived: false          });
+            archived: false
+          });
         }
 
         hideAdminForm();
@@ -1105,7 +1110,7 @@
         }
       };
 
-      // ---------- SCREEN SWITCHING (SPA) ----------
+      // ---------- SCREEN SWITCHING (SPA) WITH FADE-IN ----------
       const screens = {
         catalog: document.getElementById('screen-catalog'),
         archive: document.getElementById('screen-archive'),
@@ -1122,11 +1127,32 @@
         help: document.getElementById('navHelp')
       };
 
+      let currentScreenName = 'catalog';
+
       window.showScreen = function(name) {
+        // Avoid re-triggering animation if already on the same screen
+        // (still re-render data for safety)
+        const isSameScreen = (currentScreenName === name);
+
         // hide all screens
-        Object.values(screens).forEach(s => s.classList.add('hidden'));
+        Object.values(screens).forEach(s => {
+          s.classList.add('hidden');
+          s.classList.remove('fade-in');
+        });
+
         // show target
-        if (screens[name]) screens[name].classList.remove('hidden');
+        const target = screens[name];
+        if (target) {
+          target.classList.remove('hidden');
+          // Only animate when actually switching screens
+          if (!isSameScreen) {
+            target.classList.add('fade-in');
+            // Remove animation class after it finishes so it can be re-added next time
+            setTimeout(() => {
+              target.classList.remove('fade-in');
+            }, 220);
+          }
+        }
 
         // update nav active state
         Object.entries(navButtons).forEach(([key, btn]) => {
@@ -1150,6 +1176,8 @@
           hideAdminForm();
           renderAdminList();
         }
+
+        currentScreenName = name;
       };
 
       // ---------- INITIAL RENDER ----------
@@ -1173,4 +1201,4 @@
     })();
   </script>
 </body>
-  </html>
+</html>
