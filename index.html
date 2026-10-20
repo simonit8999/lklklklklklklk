@@ -1,3 +1,6 @@
+Вот полный обновленный код. Кнопка `+ ДОБАВИТЬ НОВЫЙ ТОВАР` перемещена над списком товаров, а в CSS добавлен отступ снизу (`margin-bottom: 20px;`), чтобы список не прилипал. Логика открытия формы (скрытие списка и кнопки) осталась полностью рабочей.
+
+```html
 <!DOCTYPE html>
 <html lang="ru">
 <head>
@@ -565,7 +568,7 @@
       padding: 16px 0;
       text-transform: uppercase;
       cursor: pointer;
-      margin: 20px 0 8px;
+      margin: 0 0 20px 0; /* Отступ снизу, чтобы список не прилипал */
     }
 
     .admin-form label {
@@ -742,8 +745,11 @@
     <!-- SCREEN 6: ADMIN (list + form) -->
     <div id="screen-admin" class="screen hidden">
       <h1 class="screen-header" style="margin-top:12px;">ADMIN · PRODUCTS</h1>
-      <div id="adminList"></div>
+      
+      <!-- Кнопка добавления перенесена наверх -->
       <button class="admin-add-btn" onclick="showAdminForm('create')">+ ДОБАВИТЬ НОВЫЙ ТОВАР</button>
+      
+      <div id="adminList"></div>
 
       <!-- admin form (hidden by default) -->
       <div id="adminFormContainer" class="hidden">
@@ -1208,6 +1214,7 @@
         editingProductId = null;
         adminFormContainer.classList.remove('hidden');
         adminList.classList.add('hidden');
+        // Скрываем кнопку добавления
         document.querySelector('.admin-add-btn').classList.add('hidden');
 
         if (mode === 'create') {
@@ -1233,6 +1240,7 @@
       window.hideAdminForm = function() {
         adminFormContainer.classList.add('hidden');
         adminList.classList.remove('hidden');
+        // Возвращаем кнопку добавления
         document.querySelector('.admin-add-btn').classList.remove('hidden');
         editingProductId = null;
       };
@@ -1432,3 +1440,4 @@
   </script>
 </body>
 </html>
+```
