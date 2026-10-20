@@ -237,13 +237,49 @@
     }
 
     /* ----- PRODUCT DETAIL (screen 3) ----- */
-    .detail-image {
+    /* Swipe carousel */
+    .detail-carousel {
+      display: flex;
+      overflow-x: auto;
+      scroll-snap-type: x mandatory;
+      -webkit-overflow-scrolling: touch;
+      border: 3px solid #000;
+      margin-bottom: 16px;
+      background: #eee;
+      scrollbar-width: none; /* Firefox */
+    }
+    .detail-carousel::-webkit-scrollbar {
+      display: none;
+    }
+    .detail-carousel-slide {
+      flex: 0 0 100%;
       width: 100%;
       aspect-ratio: 1 / 1;
-      border: 3px solid #000;
+      scroll-snap-align: start;
+      position: relative;
+    }
+    .detail-carousel-slide img {
+      width: 100%;
+      height: 100%;
       object-fit: cover;
-      background: #eee;
+      display: block;
+    }
+    /* indicator dots */
+    .carousel-dots {
+      display: flex;
+      justify-content: center;
+      gap: 6px;
+      margin-top: -8px;
       margin-bottom: 16px;
+    }
+    .carousel-dot {
+      width: 8px;
+      height: 8px;
+      background: #ccc;
+      border: 1px solid #000;
+    }
+    .carousel-dot.active {
+      background: #000;
     }
 
     .detail-name {
@@ -690,8 +726,8 @@
           <label>Описание</label>
           <textarea id="adminDesc" placeholder="ITEM DESCRIPTION..."></textarea>
 
-          <label>URL изображения</label>
-          <input type="text" id="adminImage" placeholder="https://...">
+          <label>URL изображений (через запятую или с новой строки)</label>
+          <textarea id="adminImages" placeholder="https://...jpg&#10;https://...jpg"></textarea>
 
           <div class="checkbox-row">
             <input type="checkbox" id="adminSoldOut">
@@ -797,13 +833,36 @@
         return true;
       }
 
-      // Normalize product from server: guarantee id, archived, soldOut fields
+      // Parse image textarea into array of URLs (split by comma or newline)
+      function parseImagesInput(raw) {
+        if (!raw) return [];
+        return raw
+          .split(/[\n,]+/)
+          .map(s => s.trim())
+          .filter(Boolean);
+      }
+
+      // Normalize product from server: guarantee id, archived, soldOut, images[]
+      // Supports both legacy `image` (string) and new `images` (array) formats.
       function normalizeProduct(p, idx) {
+        let imgs = [];
+        if (Array.isArray(p.images) && p.images.length > 0) {
+          imgs = p.images.filter(Boolean);
+        } else if (typeof p.images === 'string' && p.images.trim()) {
+          imgs = parseImagesInput(p.images);
+        } else if (typeof p.image === 'string' && p.image.trim()) {
+          imgs = [p.image.trim()];
+        } else if (Array.isArray(p.image)) {
+          imgs = p.image.filter(Boolean);
+        }
+        if (imgs.length === 0) {
+          imgs = ['https://picsum.photos/id/100/600/600'];
+        }
         return {
           id: p.id ?? p._id ?? idx + 1,
           name: p.name || p.title || 'UNNAMED',
           price: p.price || '',
-          image: p.image || p.photo || 'https://picsum.photos/id/100/600/600',
+          images: imgs,
           description: p.description || p.desc || '',
           soldOut: !!p.soldOut,
           archived: !!p.archived
@@ -824,7 +883,6 @@
       async function loadProductsFromServer() {
         try {
           const data = await apiGetProducts();
-          // Expect an array; if server wraps in object, try common keys
           let arr = Array.isArray(data) ? data
                     : Array.isArray(data.products) ? data.products
                     : Array.isArray(data.data) ? data.data
@@ -839,7 +897,7 @@
         renderAll();
       }
 
-      // ---------- RENDER CATALOG (excludes archived) ----------
+      // ---------- RENDER CATALOG (excludes archived; uses images[0]) ----------
       const catalogGrid = document.getElementById('catalogGrid');
       function renderCatalog() {
         const visible = products.filter(p => !p.archived);
@@ -851,7 +909,7 @@
         catalogGrid.innerHTML = sorted.map(p => `
           <div class="product-card" onclick="openProductDetail(${p.id})">
             <div class="product-image-wrapper">
-              <img src="${p.image}" alt="${p.name}" class="${p.soldOut ? 'sold-out-img' : ''}">
+              <img src="${p.images[0]}" alt="${p.name}" class="${p.soldOut ? 'sold-out-img' : ''}">
               ${p.soldOut ? '<div class="sold-out-badge">SOLD OUT</div>' : ''}
             </div>
             <div class="product-info">
@@ -862,7 +920,7 @@
         `).join('');
       }
 
-      // ---------- RENDER SEARCH (excludes archived) ----------
+      // ---------- RENDER SEARCH (excludes archived; uses images[0]) ----------
       const searchInput = document.getElementById('searchInput');
       const searchGrid = document.getElementById('searchGrid');
       function renderSearch(query) {
@@ -879,7 +937,7 @@
         searchGrid.innerHTML = sorted.map(p => `
           <div class="product-card" onclick="openProductDetail(${p.id})">
             <div class="product-image-wrapper">
-              <img src="${p.image}" alt="${p.name}" class="${p.soldOut ? 'sold-out-img' : ''}">
+              <img src="${p.images[0]}" alt="${p.name}" class="${p.soldOut ? 'sold-out-img' : ''}">
               ${p.soldOut ? '<div class="sold-out-badge">SOLD OUT</div>' : ''}
             </div>
             <div class="product-info">
@@ -903,8 +961,8 @@
           return;
         }
         archiveGrid.innerHTML = archived.map(p => `
-          <div class="archive-item" onclick="openFullscreen('${p.image}')">
-            <img src="${p.image}" alt="${p.name}">
+          <div class="archive-item" onclick="openFullscreen('${p.images[0]}')">
+            <img src="${p.images[0]}" alt="${p.name}">
           </div>
         `).join('');
       }
@@ -927,14 +985,34 @@
         if (e.target === fullscreenOverlay) closeFullscreen();
       });
 
-      // ---------- PRODUCT DETAIL (screen 3) ----------
+      // ---------- PRODUCT DETAIL (screen 3) WITH CAROUSEL ----------
       const detailScreen = document.getElementById('screen-detail');
       let currentProductId = null;
+      let carouselScrollHandler = null;
 
       window.openProductDetail = function(id) {
         const product = products.find(p => Number(p.id) === Number(id));
         if (!product) return;
         currentProductId = product.id;
+
+        const imgs = product.images && product.images.length > 0
+          ? product.images
+          : ['https://picsum.photos/id/100/600/600'];
+
+        // Build carousel slides
+        const slides = imgs.map(src => `
+          <div class="detail-carousel-slide">
+            <img src="${src}" alt="${product.name}">
+          </div>
+        `).join('');
+
+        // Build dots only if >1 image
+        let dotsHTML = '';
+        if (imgs.length > 1) {
+          dotsHTML = '<div class="carousel-dots" id="carouselDots">' +
+            imgs.map((_, i) => `<div class="carousel-dot${i === 0 ? ' active' : ''}" data-index="${i}"></div>`).join('') +
+            '</div>';
+        }
 
         let actionButtonHTML;
         if (product.soldOut) {
@@ -956,12 +1034,31 @@
 
         detailScreen.innerHTML = `
           <h1 class="screen-header" style="font-size:32px; margin-top:12px;">${product.name}</h1>
-          <img class="detail-image" src="${product.image}" alt="${product.name}">
+          <div class="detail-carousel" id="detailCarousel">${slides}</div>
+          ${dotsHTML}
           <div class="detail-price">${product.price}</div>
           ${soldOutBlock}
           <div class="detail-description">${product.description}</div>
           ${actionButtonHTML}
         `;
+
+        // wire up carousel dot indicators
+        const carousel = document.getElementById('detailCarousel');
+        const dotsContainer = document.getElementById('carouselDots');
+        if (carousel && dotsContainer && imgs.length > 1) {
+          // remove previous handler if any
+          if (carouselScrollHandler && carousel._prevHandler) {
+            carousel.removeEventListener('scroll', carousel._prevHandler);
+          }
+          const handler = () => {
+            const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
+            const dots = dotsContainer.querySelectorAll('.carousel-dot');
+            dots.forEach((d, i) => d.classList.toggle('active', i === idx));
+          };
+          carousel._prevHandler = handler;
+          carousel.addEventListener('scroll', handler, { passive: true });
+          carouselScrollHandler = handler;
+        }
 
         showScreen('detail');
       };
@@ -1010,7 +1107,7 @@
       const adminName = document.getElementById('adminName');
       const adminPrice = document.getElementById('adminPrice');
       const adminDesc = document.getElementById('adminDesc');
-      const adminImage = document.getElementById('adminImage');
+      const adminImages = document.getElementById('adminImages');
       const adminSoldOut = document.getElementById('adminSoldOut');
 
       let editingProductId = null;
@@ -1027,7 +1124,7 @@
               <div class="admin-product-info">
                 <div class="admin-product-name">${p.name}</div>
                 <div class="admin-product-price">${p.price}</div>
-                <div class="admin-product-status">${status}</div>
+                <div class="admin-product-status">${status} · ${p.images.length} img</div>
               </div>
               <div class="admin-actions">
                 <button onclick="editProduct(${p.id})">EDIT</button>
@@ -1055,7 +1152,7 @@
           adminName.value = '';
           adminPrice.value = '';
           adminDesc.value = '';
-          adminImage.value = 'https://picsum.photos/id/100/600/600';
+          adminImages.value = 'https://picsum.photos/id/100/600/600';
           adminSoldOut.checked = false;
         } else if (mode === 'edit' && productId) {
           const p = products.find(x => Number(x.id) === Number(productId));
@@ -1065,7 +1162,7 @@
           adminName.value = p.name;
           adminPrice.value = p.price;
           adminDesc.value = p.description;
-          adminImage.value = p.image;
+          adminImages.value = (p.images || []).join('\n');
           adminSoldOut.checked = p.soldOut;
         }
       };
@@ -1077,12 +1174,15 @@
         editingProductId = null;
       };
 
-      // Save: CREATE sends POST to server; EDIT updates local only (no PATCH endpoint specified)
+      // Save: CREATE sends POST to server with images array; EDIT updates local only
       window.saveAdminForm = async function() {
         const name = adminName.value.trim();
         const price = adminPrice.value.trim();
         const desc = adminDesc.value.trim();
-        const image = adminImage.value.trim() || 'https://picsum.photos/id/100/600/600';
+        let images = parseImagesInput(adminImages.value);
+        if (images.length === 0) {
+          images = ['https://picsum.photos/id/100/600/600'];
+        }
         const soldOut = adminSoldOut.checked;
 
         if (!name || !price) {
@@ -1097,7 +1197,7 @@
             p.name = name;
             p.price = price;
             p.description = desc;
-            p.image = image;
+            p.images = images;
             p.soldOut = soldOut;
           }
           hideAdminForm();
@@ -1105,19 +1205,18 @@
           return;
         }
 
-        // CREATE — send POST to server
+        // CREATE — send POST to server with `images` array
         const newProduct = {
           name: name,
           price: price,
           description: desc,
-          image: image,
+          images: images,
           soldOut: soldOut,
           archived: false
         };
 
         try {
           await apiCreateProduct(newProduct);
-          // Reload from server to get authoritative state
           await loadProductsFromServer();
           hideAdminForm();
           showScreen('admin');
@@ -1164,7 +1263,6 @@
 
         try {
           await apiDeleteProduct(p.id);
-          // Remove from local array and re-render
           products = products.filter(x => Number(x.id) !== Number(p.id));
           renderAll();
         } catch (err) {
@@ -1241,7 +1339,6 @@
       };
 
       // ---------- INITIAL LOAD ----------
-      // Start with catalog rendering empty, then fetch from server
       renderAll();
       showScreen('catalog');
       loadProductsFromServer();
