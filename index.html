@@ -19,8 +19,8 @@
 
     html, body {
       height: 100%;
-      height: 100dvh; /* dynamic viewport height for mobile */
-      overflow: hidden; /* prevent page-level scrolling */
+      height: 100dvh;
+      overflow: hidden;
     }
 
     body {
@@ -32,7 +32,7 @@
       display: flex;
       flex-direction: column;
       -webkit-font-smoothing: antialiased;
-      padding-bottom: 64px; /* exact height of bottom nav */
+      padding-bottom: 64px; /* space for bottom nav */
     }
 
     /* ----- TYPOGRAPHY ----- */
@@ -41,6 +41,27 @@
       font-weight: 400;
       letter-spacing: 0.02em;
       text-transform: uppercase;
+    }
+
+    /* ----- NEW: TOP LOGO HEADER ----- */
+    .app-header {
+      width: 100%;
+      background: #fff;
+      border-bottom: 4px solid #000;
+      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      flex-shrink: 0;
+      z-index: 100;
+    }
+
+    .app-header img {
+      height: 60px; /* Фиксированная высота шапки */
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      display: block;
     }
 
     /* ----- LAYOUT & UTILS ----- */
@@ -52,8 +73,7 @@
       width: 100%;
       overflow-y: auto;
       -webkit-overflow-scrolling: touch;
-      min-height: 0; /* critical for flex children to shrink */
-      padding-top: 56px; /* space for admin button */
+      min-height: 0;
     }
 
     .hidden {
@@ -70,18 +90,18 @@
       animation: fadeIn 0.2s ease-in-out;
     }
 
-    /* ----- ADMIN BUTTON (top-right, no overlap) ----- */
+    /* ----- ADMIN BUTTON ----- */
     #adminBtn {
       position: fixed;
-      top: 12px;
+      top: 76px; /* Сдвинут ниже шапки */
       right: 12px;
       z-index: 1000;
       background: #000;
       color: #fff;
       border: 2px solid #000;
-      padding: 8px 16px;
+      padding: 6px 12px;
       font-family: 'Anton', sans-serif;
-      font-size: 14px;
+      font-size: 12px;
       letter-spacing: 1px;
       cursor: pointer;
       text-transform: uppercase;
@@ -98,14 +118,14 @@
       font-family: 'Anton', sans-serif;
       font-size: 38px;
       line-height: 1;
-      margin: 28px 0 20px;
+      margin: 20px 0 20px; /* Уменьшил верхний отступ, так как есть шапка */
       text-transform: uppercase;
       border-bottom: 4px solid #000;
       padding-bottom: 8px;
       letter-spacing: -0.01em;
     }
 
-    /* ----- PRODUCT GRID (2 columns) ----- */
+    /* ----- PRODUCT GRID ----- */
     .product-grid {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -177,7 +197,7 @@
       letter-spacing: 0.5px;
     }
 
-    /* ----- ARCHIVE GRID (square photos) ----- */
+    /* ----- ARCHIVE GRID ----- */
     .archive-grid {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -200,7 +220,7 @@
       transition: none;
     }
 
-    /* fullscreen image overlay */
+    /* ----- FULLSCREEN OVERLAY ----- */
     .fullscreen-overlay {
       position: fixed;
       top: 0;
@@ -236,8 +256,7 @@
       line-height: 1;
     }
 
-    /* ----- PRODUCT DETAIL (screen 3) ----- */
-    /* Swipe carousel with overlay buttons */
+    /* ----- PRODUCT DETAIL ----- */
     .detail-carousel-wrapper {
       position: relative;
       margin-bottom: 8px;
@@ -250,8 +269,8 @@
       -webkit-overflow-scrolling: touch;
       border: 3px solid #000;
       background: #eee;
-      scrollbar-width: none; /* Firefox */
-      scroll-behavior: smooth; /* smooth scroll for button clicks */
+      scrollbar-width: none;
+      scroll-behavior: smooth;
     }
     .detail-carousel::-webkit-scrollbar {
       display: none;
@@ -268,10 +287,9 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      pointer-events: none; /* prevents image drag interfering with swipe */
+      pointer-events: none;
     }
 
-    /* Navigation arrows */
     .carousel-arrow {
       position: absolute;
       top: 50%;
@@ -296,7 +314,6 @@
     .carousel-arrow.left { left: 8px; }
     .carousel-arrow.right { right: 8px; }
 
-    /* indicator dots */
     .carousel-dots {
       display: flex;
       justify-content: center;
@@ -362,7 +379,6 @@
       background: #222;
     }
 
-    /* disabled / sold out state */
     .order-btn:disabled {
       background: #888 !important;
       color: #fff !important;
@@ -370,7 +386,7 @@
       cursor: not-allowed !important;
     }
 
-    /* ----- MODAL (order comment) ----- */
+    /* ----- MODAL ----- */
     .modal-overlay {
       position: fixed;
       top: 0;
@@ -480,7 +496,7 @@
       word-break: break-all;
     }
 
-    /* ----- ADMIN SCREEN (list + form) ----- */
+    /* ----- ADMIN SCREEN ----- */
     .admin-section-title {
       font-family: 'Anton', sans-serif;
       font-size: 22px;
@@ -565,7 +581,7 @@
       padding: 16px 0;
       text-transform: uppercase;
       cursor: pointer;
-      margin: 0 0 20px 0; /* Отступ снизу, чтобы список не прилипал */
+      margin: 0 0 20px 0;
     }
 
     .admin-form label {
@@ -642,7 +658,7 @@
       margin-top: 12px;
     }
 
-    /* ----- BOTTOM NAV (fixed) ----- */
+    /* ----- BOTTOM NAV ----- */
     .bottom-nav {
       position: fixed;
       bottom: 0;
@@ -685,25 +701,31 @@
       color: #fff;
     }
 
-    /* small screens */
     @media (max-width: 380px) {
       .bottom-nav button {
         font-size: 12px;
         padding: 6px 4px;
+      }
+      .app-header img {
+        height: 40px;
       }
     }
   </style>
 </head>
 <body>
 
-  <!-- ADMIN BUTTON (shown conditionally) -->
+  <!-- НОВАЯ ШАПКА С ЛОГОТИПОМ -->
+  <header class="app-header">
+    <img src="https://i.postimg.cc/nzXH8mBL/photo-2026-10-21-13-20-18.jpg" alt="LOGO">
+  </header>
+
+  <!-- ADMIN BUTTON -->
   <button id="adminBtn" class="hidden" onclick="showScreen('admin')">[ ADMIN ]</button>
 
-  <!-- MAIN CONTAINER (screens) -->
+  <!-- MAIN CONTAINER -->
   <div class="container">
     <!-- SCREEN 1: CATALOG -->
     <div id="screen-catalog" class="screen">
-      <h1 class="screen-header">UNDEFINED ARCH.</h1>
       <div id="catalogGrid" class="product-grid"></div>
     </div>
 
@@ -713,7 +735,7 @@
       <div id="archiveGrid" class="archive-grid"></div>
     </div>
 
-    <!-- SCREEN 3: PRODUCT DETAIL (dynamic) -->
+    <!-- SCREEN 3: PRODUCT DETAIL -->
     <div id="screen-detail" class="screen hidden">
       <!-- filled via JS -->
     </div>
@@ -739,36 +761,27 @@
       </div>
     </div>
 
-    <!-- SCREEN 6: ADMIN (list + form) -->
+    <!-- SCREEN 6: ADMIN -->
     <div id="screen-admin" class="screen hidden">
-      <h1 class="screen-header" style="margin-top:12px;">ADMIN · PRODUCTS</h1>
-      
-      <!-- Кнопка добавления перенесена наверх -->
+      <h1 class="screen-header">ADMIN · PRODUCTS</h1>
       <button class="admin-add-btn" onclick="showAdminForm('create')">+ ДОБАВИТЬ НОВЫЙ ТОВАР</button>
-      
       <div id="adminList"></div>
 
-      <!-- admin form (hidden by default) -->
       <div id="adminFormContainer" class="hidden">
         <h2 class="admin-section-title" id="adminFormTitle">НОВЫЙ ТОВАР</h2>
         <div class="admin-form">
           <label>Название</label>
           <input type="text" id="adminName" placeholder="ITEM NAME">
-
           <label>Цена</label>
           <input type="text" id="adminPrice" placeholder="€ 250">
-
           <label>Описание</label>
           <textarea id="adminDesc" placeholder="ITEM DESCRIPTION..."></textarea>
-
-          <label>URL изображений (через запятую или с новой строки)</label>
+          <label>URL изображений</label>
           <textarea id="adminImages" placeholder="https://...jpg&#10;https://...jpg"></textarea>
-
           <div class="checkbox-row">
             <input type="checkbox" id="adminSoldOut">
             <span>SOLD OUT</span>
           </div>
-
           <button class="save-btn" onclick="saveAdminForm()">СОХРАНИТЬ</button>
           <button class="back-btn" onclick="hideAdminForm()">ОТМЕНА</button>
         </div>
@@ -784,13 +797,12 @@
     <button id="navHelp" onclick="showScreen('help')">HELP</button>
   </nav>
 
-  <!-- FULLSCREEN OVERLAY (for archive) -->
+  <!-- OVERLAYS & MODALS -->
   <div id="fullscreenOverlay" class="fullscreen-overlay hidden">
     <img id="fullscreenImage" src="" alt="archive full">
     <div class="fullscreen-close" onclick="closeFullscreen()">×</div>
   </div>
 
-  <!-- ORDER MODAL -->
   <div id="orderModal" class="modal-overlay hidden">
     <div class="modal-content">
       <h3>ОФОРМИТЬ ЗАКАЗ</h3>
@@ -806,23 +818,19 @@
     (function() {
       'use strict';
 
-      // ---------- API CONFIG ----------
       const API_BASE = 'https://cricket-palpable-chatter.ngrok-free.dev';
       const API_PRODUCTS = API_BASE + '/api/products';
-      const API_ORDERS = API_BASE + '/api/orders'; // Маршрут для заказов
       const API_HEADERS = {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true'
       };
 
-      // ---------- TELEGRAM WEBAPP ----------
       const tg = window.Telegram?.WebApp;
       if (tg) {
         tg.ready();
         tg.expand();
       }
 
-      // ---------- ADMIN IDs ----------
       const ADMIN_IDS = [1086313853, 966054850];
       const userId = tg?.initDataUnsafe?.user?.id;
       const adminBtn = document.getElementById('adminBtn');
@@ -830,81 +838,50 @@
         adminBtn.classList.remove('hidden');
       }
 
-      // ---------- GLOBAL STATE ----------
       let products = [];
       let nextProductId = 1;
 
-      // sorted: available first, sold out at end
       function getSortedProducts(list) {
         return [...list].sort((a, b) => (a.soldOut === b.soldOut ? 0 : a.soldOut ? 1 : -1));
       }
 
-      // ---------- API HELPERS ----------
       async function apiGetProducts() {
-        const res = await fetch(API_PRODUCTS, {
-          method: 'GET',
-          headers: API_HEADERS
-        });
+        const res = await fetch(API_PRODUCTS, { method: 'GET', headers: API_HEADERS });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return await res.json();
       }
 
       async function apiCreateProduct(data) {
-        const res = await fetch(API_PRODUCTS, {
-          method: 'POST',
-          headers: API_HEADERS,
-          body: JSON.stringify(data)
-        });
+        const res = await fetch(API_PRODUCTS, { method: 'POST', headers: API_HEADERS, body: JSON.stringify(data) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return await res.json();
       }
 
-      // Обновление товара (архив, soldout, редактирование)
       async function apiUpdateProduct(id, data) {
-        const res = await fetch(API_PRODUCTS + '/' + id, {
-          method: 'PATCH', 
-          headers: API_HEADERS,
-          body: JSON.stringify(data)
-        });
+        const res = await fetch(API_PRODUCTS + '/' + id, { method: 'PATCH', headers: API_HEADERS, body: JSON.stringify(data) });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return await res.json();
       }
 
       async function apiDeleteProduct(id) {
-        const res = await fetch(API_PRODUCTS + '/' + id, {
-          method: 'DELETE',
-          headers: API_HEADERS
-        });
+        const res = await fetch(API_PRODUCTS + '/' + id, { method: 'DELETE', headers: API_HEADERS });
         if (!res.ok) throw new Error('HTTP ' + res.status);
         return true;
       }
 
-      // Parse image textarea into array of URLs (split by comma or newline)
       function parseImagesInput(raw) {
         if (!raw) return [];
-        return raw
-          .split(/[\n,]+/)
-          .map(s => s.trim())
-          .filter(Boolean);
+        return raw.split(/[\n,]+/).map(s => s.trim()).filter(Boolean);
       }
 
-      // Normalize product from server
       function normalizeProduct(p, idx) {
         let imgs = [];
-        if (Array.isArray(p.images) && p.images.length > 0) {
-          imgs = p.images.filter(Boolean);
-        } else if (typeof p.images === 'string' && p.images.trim()) {
-          imgs = parseImagesInput(p.images);
-        } else if (typeof p.image === 'string' && p.image.trim()) {
-          imgs = [p.image.trim()];
-        } else if (Array.isArray(p.image)) {
-          imgs = p.image.filter(Boolean);
-        }
-        if (imgs.length === 0) {
-          imgs = ['https://picsum.photos/id/100/600/600'];
-        }
+        if (Array.isArray(p.images) && p.images.length > 0) imgs = p.images.filter(Boolean);
+        else if (typeof p.images === 'string' && p.images.trim()) imgs = parseImagesInput(p.images);
+        else if (typeof p.image === 'string' && p.image.trim()) imgs = [p.image.trim()];
+        else if (Array.isArray(p.image)) imgs = p.image.filter(Boolean);
+        if (imgs.length === 0) imgs = ['https://picsum.photos/id/100/600/600'];
 
-        // Безопасное приведение к boolean (на случай если сервер вернет 1, "true", "1" и т.д.)
         const isArchived = !!(p.archived === true || p.archived === 1 || p.archived === 'true' || p.archived === '1');
         const isSoldOut = !!(p.soldOut === true || p.soldOut === 1 || p.soldOut === 'true' || p.soldOut === '1');
 
@@ -931,10 +908,7 @@
       async function loadProductsFromServer() {
         try {
           const data = await apiGetProducts();
-          let arr = Array.isArray(data) ? data
-                    : Array.isArray(data.products) ? data.products
-                    : Array.isArray(data.data) ? data.data
-                    : [];
+          let arr = Array.isArray(data) ? data : Array.isArray(data.products) ? data.products : Array.isArray(data.data) ? data.data : [];
           products = arr.map(normalizeProduct);
           updateNextId();
         } catch (err) {
@@ -945,7 +919,6 @@
         renderAll();
       }
 
-      // ---------- RENDER CATALOG ----------
       const catalogGrid = document.getElementById('catalogGrid');
       function renderCatalog() {
         const visible = products.filter(p => !p.archived);
@@ -968,15 +941,12 @@
         `).join('');
       }
 
-      // ---------- RENDER SEARCH ----------
       const searchInput = document.getElementById('searchInput');
       const searchGrid = document.getElementById('searchGrid');
       function renderSearch(query) {
         const q = query.trim().toLowerCase();
         let filtered = products.filter(p => !p.archived);
-        if (q) {
-          filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
-        }
+        if (q) filtered = filtered.filter(p => p.name.toLowerCase().includes(q));
         const sorted = getSortedProducts(filtered);
         if (sorted.length === 0) {
           searchGrid.innerHTML = '<div style="grid-column:1/-1; font-family:\'Courier New\',monospace; padding:20px 0;">NOTHING FOUND.</div>';
@@ -996,11 +966,8 @@
         `).join('');
       }
 
-      searchInput.addEventListener('input', (e) => {
-        renderSearch(e.target.value);
-      });
+      searchInput.addEventListener('input', (e) => renderSearch(e.target.value));
 
-      // ---------- ARCHIVE GRID ----------
       const archiveGrid = document.getElementById('archiveGrid');
       function renderArchive() {
         const archived = products.filter(p => p.archived);
@@ -1032,7 +999,6 @@
         if (e.target === fullscreenOverlay) closeFullscreen();
       });
 
-      // ---------- PRODUCT DETAIL WITH CAROUSEL ----------
       const detailScreen = document.getElementById('screen-detail');
       let currentProductId = null;
 
@@ -1041,9 +1007,7 @@
         if (!product) return;
         currentProductId = product.id;
 
-        const imgs = product.images && product.images.length > 0
-          ? product.images
-          : ['https://picsum.photos/id/100/600/600'];
+        const imgs = product.images && product.images.length > 0 ? product.images : ['https://picsum.photos/id/100/600/600'];
 
         const slides = imgs.map(src => `
           <div class="detail-carousel-slide">
@@ -1067,10 +1031,7 @@
         let actionButtonHTML;
         if (product.soldOut) {
           actionButtonHTML = `
-            <button class="order-btn" disabled 
-              style="background:#888 !important; border-color:#888 !important; color:#fff !important; cursor:not-allowed !important;">
-              SOLD OUT
-            </button>
+            <button class="order-btn" disabled style="background:#888 !important; border-color:#888 !important; color:#fff !important; cursor:not-allowed !important;">SOLD OUT</button>
           `;
         } else {
           actionButtonHTML = `
@@ -1099,9 +1060,7 @@
 
         const carousel = document.getElementById('detailCarousel');
         if (carousel && imgs.length > 1) {
-          if (carousel._prevHandler) {
-            carousel.removeEventListener('scroll', carousel._prevHandler);
-          }
+          if (carousel._prevHandler) carousel.removeEventListener('scroll', carousel._prevHandler);
           const handler = () => {
             const idx = Math.round(carousel.scrollLeft / carousel.clientWidth);
             const dots = document.querySelectorAll('.carousel-dot');
@@ -1128,7 +1087,6 @@
         carousel.scrollTo({ left: slideWidth * index, behavior: 'smooth' });
       };
 
-      // ---------- ORDER MODAL ----------
       const orderModal = document.getElementById('orderModal');
       const orderComment = document.getElementById('orderComment');
 
@@ -1141,38 +1099,25 @@
         orderModal.classList.add('hidden');
       };
 
-      // ---------- ОБНОВЛЕННАЯ ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА ----------
-      window.submitOrder = async function() {
+      window.submitOrder = function() {
         const comment = orderComment.value.trim();
-        
-        if (!currentProductId) { alert('Ошибка: товар не выбран!'); return; }
-
         const payload = {
           productId: currentProductId,
-          comment: comment || '(без комментария)',
-          // Автоматически берем данные из Telegram
-          userId: tg?.initDataUnsafe?.user?.id || null,
-          username: tg?.initDataUnsafe?.user?.username || null,
-          fullName: tg?.initDataUnsafe?.user ? `${tg.initDataUnsafe.user.first_name || ''} ${tg.initDataUnsafe.user.last_name || ''}`.trim() : null
+          comment: comment || '(no comment)'
         };
 
-        try {
-            // Отправляем POST-запрос на наш API
-            const res = await fetch(API_ORDERS, {
-                method: 'POST',
-                headers: API_HEADERS,
-                body: JSON.stringify(payload)
-            });
-            
-            if (!res.ok) throw new Error('Ошибка сервера');
-            
+        if (tg && tg.sendData) {
+          try {
             closeModal();
-            alert('✅ Заказ успешно отправлен! Ожидайте сообщения.');
-            if (tg) tg.close(); // Закрываем Mini App
-            
-        } catch (e) {
-            console.error('Ошибка отправки заказа:', e);
-            alert('❌ Сервер временно недоступен. Попробуйте позже.');
+            tg.sendData(JSON.stringify(payload));
+            alert('Заказ отправлен! Ожидайте сообщения от бота.');
+            tg.close();
+          } catch (e) {
+            console.error('Ошибка sendData:', e);
+            alert('Ошибка отправки заказа. Попробуйте открыть магазин через кнопку в боте.');
+          }
+        } else {
+          alert('Вы открыли магазин в обычном браузере. Чтобы сделать заказ, откройте его через кнопку в боте.');
         }
       };
 
@@ -1180,7 +1125,6 @@
         if (e.target === orderModal) closeModal();
       });
 
-      // ---------- ADMIN ----------
       const adminList = document.getElementById('adminList');
       const adminFormContainer = document.getElementById('adminFormContainer');
       const adminFormTitle = document.getElementById('adminFormTitle');
@@ -1208,13 +1152,9 @@
               </div>
               <div class="admin-actions">
                 <button onclick="editProduct(${p.id})">EDIT</button>
-                ${p.archived
-                  ? `<button onclick="restoreProduct(${p.id})">RESTORE</button>`
-                  : `<button onclick="archiveProduct(${p.id})">ARCHIVE</button>`}
+                ${p.archived ? `<button onclick="restoreProduct(${p.id})">RESTORE</button>` : `<button onclick="archiveProduct(${p.id})">ARCHIVE</button>`}
                 <button class="danger" onclick="deleteProduct(${p.id})">DELETE</button>
-                ${!p.archived && !p.soldOut
-                  ? `<button class="danger" onclick="markSoldOut(${p.id})">SOLD OUT</button>`
-                  : ''}
+                ${!p.archived && !p.soldOut ? `<button class="danger" onclick="markSoldOut(${p.id})">SOLD OUT</button>` : ''}
               </div>
             </div>
           `;
@@ -1259,9 +1199,7 @@
         const price = adminPrice.value.trim();
         const desc = adminDesc.value.trim();
         let images = parseImagesInput(adminImages.value);
-        if (images.length === 0) {
-          images = ['https://picsum.photos/id/100/600/600'];
-        }
+        if (images.length === 0) images = ['https://picsum.photos/id/100/600/600'];
         const soldOut = adminSoldOut.checked;
 
         if (!name || !price) {
@@ -1271,14 +1209,7 @@
 
         if (editingProductId !== null) {
           const p = products.find(x => Number(x.id) === Number(editingProductId));
-          const updateData = {
-            name: name,
-            price: price,
-            description: desc,
-            images: images,
-            soldOut: soldOut,
-            archived: p ? p.archived : false
-          };
+          const updateData = { name, price, description: desc, images, soldOut, archived: p ? p.archived : false };
           try {
             await apiUpdateProduct(editingProductId, updateData);
             await loadProductsFromServer();
@@ -1290,15 +1221,7 @@
           return;
         }
 
-        const newProduct = {
-          name: name,
-          price: price,
-          description: desc,
-          images: images,
-          soldOut: soldOut,
-          archived: false
-        };
-
+        const newProduct = { name, price, description: desc, images, soldOut, archived: false };
         try {
           await apiCreateProduct(newProduct);
           await loadProductsFromServer();
@@ -1310,14 +1233,11 @@
         }
       };
 
-      window.editProduct = function(id) {
-        showAdminForm('edit', id);
-      };
+      window.editProduct = function(id) { showAdminForm('edit', id); };
 
       window.archiveProduct = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
         if (!p) return;
-        
         try {
           await apiUpdateProduct(p.id, { archived: true });
           await loadProductsFromServer();
@@ -1331,7 +1251,6 @@
       window.restoreProduct = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
         if (!p) return;
-
         try {
           await apiUpdateProduct(p.id, { archived: false });
           await loadProductsFromServer();
@@ -1344,7 +1263,6 @@
       window.markSoldOut = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
         if (!p) return;
-
         try {
           await apiUpdateProduct(p.id, { soldOut: true });
           await loadProductsFromServer();
@@ -1358,7 +1276,6 @@
         const p = products.find(x => Number(x.id) === Number(id));
         if (!p) return;
         if (!confirm('Удалить товар "' + p.name + '"?')) return;
-
         try {
           await apiDeleteProduct(p.id);
           products = products.filter(x => Number(x.id) !== Number(p.id));
@@ -1376,7 +1293,6 @@
         renderAdminList();
       }
 
-      // ---------- SPA NAVIGATION ----------
       const screens = {
         catalog: document.getElementById('screen-catalog'),
         archive: document.getElementById('screen-archive'),
@@ -1408,9 +1324,7 @@
           target.classList.remove('hidden');
           if (!isSameScreen) {
             target.classList.add('fade-in');
-            setTimeout(() => {
-              target.classList.remove('fade-in');
-            }, 220);
+            setTimeout(() => { target.classList.remove('fade-in'); }, 220);
           }
         }
 
@@ -1429,7 +1343,6 @@
         currentScreenName = name;
       };
 
-      // ---------- INITIAL LOAD ----------
       renderAll();
       showScreen('catalog');
       loadProductsFromServer();
