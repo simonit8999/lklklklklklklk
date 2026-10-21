@@ -809,7 +809,7 @@
       // ---------- API CONFIG ----------
       const API_BASE = 'https://cricket-palpable-chatter.ngrok-free.dev';
       const API_PRODUCTS = API_BASE + '/api/products';
-      // headers required to bypass ngrok browser warning page
+      const API_ORDERS = API_BASE + '/api/orders'; // Новый маршрут для заказов
       const API_HEADERS = {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true'
@@ -1142,32 +1142,34 @@
       };
 
       // ---------- ОБНОВЛЕННАЯ ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА ----------
-      window.submitOrder = function() {
+      window.submitOrder = async function() {
         const comment = orderComment.value.trim();
+        
+        if (!currentProductId) { alert('Ошибка: товар не выбран!'); return; }
+
         const payload = {
           productId: currentProductId,
-          comment: comment || '(no comment)'
+          comment: comment || '(без комментария)',
+          user: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'Клиент (не авторизован)'
         };
 
-        if (tg && tg.sendData) {
-          try {
-            // 1. Сначала закрываем модалку
+        try {
+            // Отправляем POST-запрос на наш API
+            const res = await fetch(API_ORDERS, {
+                method: 'POST',
+                headers: API_HEADERS,
+                body: JSON.stringify(payload)
+            });
+            
+            if (!res.ok) throw new Error('Ошибка сервера');
+            
             closeModal();
+            alert('✅ Заказ успешно отправлен! Ожидайте сообщения.');
+            if (tg) tg.close(); // Закрываем Mini App
             
-            // 2. Отправляем данные боту
-            tg.sendData(JSON.stringify(payload));
-            
-            // 3. Показываем пользователю уведомление
-            alert('Заказ отправлен! Ожидайте сообщения от бота.');
-            
-            // 4. Закрываем Mini App
-            tg.close();
-          } catch (e) {
-            console.error('Ошибка sendData:', e);
-            alert('Ошибка отправки заказа. Попробуйте открыть магазин через кнопку в боте.');
-          }
-        } else {
-          alert('Вы открыли магазин в обычном браузере. Чтобы сделать заказ, откройте его через кнопку в боте.');
+        } catch (e) {
+            console.error('Ошибка отправки заказа:', e);
+            alert('❌ Сервер временно недоступен. Попробуйте позже.');
         }
       };
 
