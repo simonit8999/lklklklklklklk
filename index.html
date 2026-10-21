@@ -809,7 +809,7 @@
       // ---------- API CONFIG ----------
       const API_BASE = 'https://cricket-palpable-chatter.ngrok-free.dev';
       const API_PRODUCTS = API_BASE + '/api/products';
-      const API_ORDERS = API_BASE + '/api/orders'; // Новый маршрут для заказов
+      const API_ORDERS = API_BASE + '/api/orders'; // Маршрут для заказов
       const API_HEADERS = {
         'Content-Type': 'application/json',
         'ngrok-skip-browser-warning': 'true'
@@ -1150,7 +1150,10 @@
         const payload = {
           productId: currentProductId,
           comment: comment || '(без комментария)',
-          user: tg?.initDataUnsafe?.user?.username ? '@' + tg.initDataUnsafe.user.username : 'Клиент (не авторизован)'
+          // Автоматически берем данные из Telegram
+          userId: tg?.initDataUnsafe?.user?.id || null,
+          username: tg?.initDataUnsafe?.user?.username || null,
+          fullName: tg?.initDataUnsafe?.user ? `${tg.initDataUnsafe.user.first_name || ''} ${tg.initDataUnsafe.user.last_name || ''}`.trim() : null
         };
 
         try {
