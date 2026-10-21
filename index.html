@@ -1003,7 +1003,6 @@
       // ---------- ARCHIVE GRID ----------
       const archiveGrid = document.getElementById('archiveGrid');
       function renderArchive() {
-        // Товары у которых archived === true (без каких-либо проверок на админа)
         const archived = products.filter(p => p.archived);
         if (archived.length === 0) {
           archiveGrid.innerHTML = '<div style="grid-column:1/-1; font-family:\'Courier New\',monospace; padding:20px 0;">ARCHIVE IS EMPTY.</div>';
@@ -1142,6 +1141,7 @@
         orderModal.classList.add('hidden');
       };
 
+      // ---------- ОБНОВЛЕННАЯ ФУНКЦИЯ ОТПРАВКИ ЗАКАЗА ----------
       window.submitOrder = function() {
         const comment = orderComment.value.trim();
         const payload = {
@@ -1151,15 +1151,24 @@
 
         if (tg && tg.sendData) {
           try {
+            // 1. Сначала закрываем модалку
+            closeModal();
+            
+            // 2. Отправляем данные боту
             tg.sendData(JSON.stringify(payload));
+            
+            // 3. Показываем пользователю уведомление
+            alert('Заказ отправлен! Ожидайте сообщения от бота.');
+            
+            // 4. Закрываем Mini App
             tg.close();
           } catch (e) {
-            alert('Ошибка отправки: ' + e.message);
+            console.error('Ошибка sendData:', e);
+            alert('Ошибка отправки заказа. Попробуйте открыть магазин через кнопку в боте.');
           }
         } else {
-          alert('Telegram WebApp не доступен. Данные: ' + JSON.stringify(payload));
+          alert('Вы открыли магазин в обычном браузере. Чтобы сделать заказ, откройте его через кнопку в боте.');
         }
-        closeModal();
       };
 
       orderModal.addEventListener('click', (e) => {
@@ -1211,7 +1220,6 @@
         editingProductId = null;
         adminFormContainer.classList.remove('hidden');
         adminList.classList.add('hidden');
-        // Скрываем кнопку добавления
         document.querySelector('.admin-add-btn').classList.add('hidden');
 
         if (mode === 'create') {
@@ -1237,7 +1245,6 @@
       window.hideAdminForm = function() {
         adminFormContainer.classList.add('hidden');
         adminList.classList.remove('hidden');
-        // Возвращаем кнопку добавления
         document.querySelector('.admin-add-btn').classList.remove('hidden');
         editingProductId = null;
       };
@@ -1258,7 +1265,6 @@
         }
 
         if (editingProductId !== null) {
-          // При редактировании отправляем на сервер
           const p = products.find(x => Number(x.id) === Number(editingProductId));
           const updateData = {
             name: name,
@@ -1303,23 +1309,20 @@
         showAdminForm('edit', id);
       };
 
-      // Теперь архивация отправляет запрос на сервер!
       window.archiveProduct = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
         if (!p) return;
         
         try {
-          // Отправляем строго { archived: true }
           await apiUpdateProduct(p.id, { archived: true });
           await loadProductsFromServer();
-          showScreen('archive'); // Сразу перекидываем в архив
+          showScreen('archive');
         } catch (err) {
           console.error('archive error:', err);
           alert('Сервер временно недоступен');
         }
       };
 
-      // Восстановление тоже отправляет на сервер
       window.restoreProduct = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
         if (!p) return;
@@ -1333,7 +1336,6 @@
         }
       };
 
-      // SOLD OUT тоже отправляет на сервер
       window.markSoldOut = async function(id) {
         const p = products.find(x => Number(x.id) === Number(id));
         if (!p) return;
